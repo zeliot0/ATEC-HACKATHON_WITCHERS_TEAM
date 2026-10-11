@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Control — Project C.R.A.T.E.R</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #03101a;
+    --bg2: #061a26;
+    --panel: rgba(8, 34, 46, 0.78);
+    --panel2: rgba(12, 48, 62, 0.55);
+    --line: rgba(46, 230, 214, 0.28);
+    --line2: rgba(46, 230, 214, 0.5);
+    --line-soft: rgba(46, 230, 214, 0.12);
+
+    --text: #cdeeee;
+    --muted: #6f9ba5;
+    --bright: #f0ffff;
+
+    --accent: #2ee6d6;
+    --accent2: #19b5c9;
+    --accentDim: rgba(46, 230, 214, 0.12);
+    --accentGlow: rgba(46, 230, 214, 0.35);
+
+    --green: #3ddc97;   --greenDim: rgba(61, 220, 151, 0.14);
+    --yellow: #f5b43a;  --yellowDim: rgba(245, 180, 58, 0.14);
+    --orange: #ff9d4d;  --orangeDim: rgba(255, 157, 77, 0.14);
+    --red: #ff5d6c;     --redDim: rgba(255, 93, 108, 0.14);
+    --purple: #a78bfa;
+
+    --success: var(--green);
+    --warning: var(--yellow);
+    --danger: var(--red);
+    --text-main: var(--text);
+    --text-muted: var(--muted);
+    --text-bright: var(--bright);
+    --panel-border: var(--line);
+
+    --crater: #4fa8ff;
+    --rock: #ff9d4d;
+
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-head: 'Rajdhani', 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', Consolas, monospace;
+    --r: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(25, 181, 201, 0.14), transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, rgba(46, 230, 214, 0.06), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    height: 100vh; overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== LAYOUT ===== */
+  #app { display: grid; grid-template-rows: 78px 1fr; height: 100vh; padding: 10px; gap: 10px; }
+
+  /* ===== PANEL (shared) ===== */
+  .panel {
+    position: relative;
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: inset 0 0 40px rgba(46, 230, 214, 0.035), 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+  /* HUD corner brackets */
+  .panel::before, .panel::after {
+    content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
+    border: 2px solid var(--accent); opacity: .85;
+  }
+  .panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; border-top-left-radius: var(--r); }
+  .panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; border-bottom-right-radius: var(--r); }
+
+  .p-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px 9px; border-bottom: 1px solid var(--line-soft);
+  }
+  .p-head h3 {
+    font-family: var(--font-head); font-size: 13px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--bright);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .p-head h3::before { content: ""; width: 3px; height: 13px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 8px var(--accentGlow); }
+  .p-body { padding: 12px 16px 14px; }
+
+  .badge {
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 1px;
+    padding: 3px 9px; border-radius: 20px; text-transform: uppercase;
+    background: var(--accentDim); color: var(--accent); border: 1px solid var(--line);
+  }
+  .badge-ok { background: var(--greenDim); color: var(--green); border-color: rgba(61,220,151,.4); }
+  .badge-warn { background: var(--yellowDim); color: var(--yellow); border-color: rgba(245,180,58,.4); }
+  .badge-bad { background: var(--redDim); color: var(--red); border-color: rgba(255,93,108,.4); }
+  .badge-accent { background: var(--accentDim); color: var(--accent); }
+
+  /* ===== TOP BAR ===== */
+  #topbar { display: grid; grid-template-columns: 340px 1fr 300px; gap: 10px; }
+
+  #tbBrand { display: flex; align-items: center; gap: 14px; padding: 0 18px; }
+  .logo-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 14px var(--accentGlow), inset 0 0 10px var(--accentDim);
+  }
+  .logo-icon svg { width: 22px; height: 22px; color: var(--accent); }
+  .logo-text { font-family: var(--font-head); font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--bright); line-height: 1; }
+  .logo-sub { font-size: 9.5px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: 5px; }
+
+  /* KPI tiles */
+  #tbKpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .kpi { padding: 9px 14px 8px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+  .kpi .kl { font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .kpi .kl i { font-style: normal; font-family: var(--font-mono); font-size: 8.5px; color: var(--accent); }
+  .kpi .kv { font-family: var(--font-head); font-size: 27px; font-weight: 700; color: var(--bright); line-height: 1; letter-spacing: .5px; }
+  .kpi .kv small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; letter-spacing: 1px; }
+  .kpi .kb { height: 4px; border-radius: 3px; background: rgba(255,255,255,0.07); overflow: hidden; }
+  .kpi .kb b { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent2), var(--accent)); box-shadow: 0 0 8px var(--accentGlow); transition: width .4s; }
+  .kpi.warn .kb b { background: linear-gradient(90deg, #d98a14, var(--yellow)); box-shadow: none; }
+  .kpi.bad .kb b { background: linear-gradient(90deg, #d63a4a, var(--red)); box-shadow: none; }
+
+  #tbStatus { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; gap: 14px; }
+  .indicator { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; letter-spacing: 1.4px; color: var(--text); text-transform: uppercase; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.on { background: var(--green); box-shadow: 0 0 9px var(--green); }
+  .dot.off { background: var(--red); box-shadow: 0 0 9px var(--red); animation: pulse-red 1.4s ease infinite; }
+  @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .tb-stack { display: flex; flex-direction: column; gap: 7px; }
+  .tb-clock { text-align: right; }
+  #missionClock { font-family: var(--font-head); font-size: 24px; font-weight: 700; color: var(--accent); letter-spacing: 2px; line-height: 1; }
+  #frameCounter { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; display: block; margin-top: 5px; }
+
+  /* ===== MAIN GRID ===== */
+  #main { display: grid; grid-template-columns: 400px 1fr 380px; gap: 10px; min-height: 0; }
+  #leftCol, #rightCol { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+  #leftCol > .panel, #rightCol > .panel { flex-shrink: 0; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(46,230,214,.25); border-radius: 4px; }
+
+  /* Camera */
+  #cameraFeed {
+    position: relative; width: 100%; aspect-ratio: 8 / 3; background: #000;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  #cameraFeed img { width: 100%; height: 100%; object-fit: contain; }
+  .no-feed { color: var(--muted); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+  .overlay-br {
+    position: absolute; bottom: 7px; right: 9px; font-family: var(--font-mono); font-size: 9.5px;
+    color: var(--text); background: rgba(0,0,0,.65); padding: 2px 7px; border-radius: 4px;
+  }
+  .feed-labels { display: flex; justify-content: space-around; padding: 7px 10px 9px; font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .rec { width: 7px; height: 7px; border-radius: 50%; background: var(--red); display: inline-block; animation: pulse-red 1s ease infinite; margin-right: 6px; }
+
+  /* Metric rows */
+  .m-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 11.5px; border-bottom: 1px dashed var(--line-soft); }
+  .m-row:last-child { border-bottom: none; }
+  .m-row .mk { color: var(--muted); }
+  .m-row .mv { font-family: var(--font-mono); color: var(--bright); font-weight: 500; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
+
+  /* Controls */
+  .ctrl-row { margin: 6px 0 10px; }
+  .ctrl-label { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .ctrl-label .cv { font-family: var(--font-mono); color: var(--accent); font-weight: 500; letter-spacing: .5px; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 3px; background: rgba(46,230,214,.15); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent); box-shadow: 0 0 8px var(--accentGlow); }
+  input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent); }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn {
+    flex: 1; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--accentDim); color: var(--accent); font-family: var(--font-head);
+    font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { border-color: var(--accent); background: rgba(46,230,214,.2); box-shadow: 0 0 12px var(--accentDim); }
+  .btn:active { transform: scale(.98); }
+  .btn.active { background: rgba(46,230,214,.22); border-color: var(--accent); }
+  .btn.primary { background: linear-gradient(180deg, var(--accent), var(--accent2)); color: #012; border-color: transparent; }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.primary.applied { background: var(--green); }
+  .btn.danger { color: var(--red); border-color: rgba(255,93,108,.45); background: var(--redDim); }
+  .btn.danger:hover { background: rgba(255,93,108,.25); border-color: var(--red); }
+  .btn.warn { color: var(--yellow); border-color: rgba(245,180,58,.45); background: var(--yellowDim); }
+  .btn.warn:hover { background: rgba(245,180,58,.25); border-color: var(--yellow); }
+  .hint { font-size: 10px; color: var(--muted); line-height: 1.5; }
+
+  /* ===== CENTER MAP ===== */
+  #centerCol { position: relative; overflow: hidden; min-height: 0; background: radial-gradient(circle at 50% 45%, rgba(25,181,201,.10), rgba(3,16,26,.9) 70%); }
+  canvas#map { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; border-radius: var(--r); }
+  canvas#map.grabbing { cursor: grabbing; }
+  #mapHud { position: absolute; top: 14px; left: 18px; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); line-height: 1.7; pointer-events: none; text-transform: uppercase; letter-spacing: .6px; }
+  #mapHud b { color: var(--accent); font-weight: 500; }
+  #mapTitle { position: absolute; top: 12px; right: 18px; text-align: right; pointer-events: none; }
+  #mapTitle .t { font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: 3px; color: var(--bright); }
+  #mapTitle .s { font-size: 9px; letter-spacing: 1.6px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  #mapLegend { position: absolute; bottom: 14px; left: 18px; display: flex; gap: 16px; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+  #mapLegend .lg { display: flex; align-items: center; gap: 6px; }
+  #mapLegend .ldot { width: 8px; height: 8px; border-radius: 50%; }
+  #mapControls { position: absolute; bottom: 14px; right: 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  #mapControls .mc-row { display: flex; gap: 6px; }
+  .mc-btn {
+    min-width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    background: rgba(6,26,38,.85); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; user-select: none; transition: .15s;
+  }
+  .mc-btn:hover, .mc-btn.follow-on { border-color: var(--accent); color: var(--accent); background: var(--accentDim); }
+  #zoomLabel { font-family: var(--font-mono); font-size: 10px; color: var(--accent); }
+
+  /* ===== STAT TILES ===== */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .stat-box { background: rgba(0,0,0,.25); border: 1px solid var(--line-soft); border-radius: 8px; padding: 9px 10px; }
+  .stat-box .sv { font-family: var(--font-head); font-size: 22px; font-weight: 700; line-height: 1.1; color: var(--bright); }
+  .stat-box .sl { font-size: 9px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+  .stat-box.accent .sv { color: var(--accent); }
+  .stat-box.green .sv { color: var(--green); }
+  .stat-box.orange .sv { color: var(--orange); }
+  .stat-box.red .sv { color: var(--red); }
+  .micro { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin: 8px 0 5px; }
+  #chartWrap { height: 64px; position: relative; }
+  canvas#perfChart { width: 100%; height: 100%; border-radius: 6px; }
+
+  /* Presets */
+  .preset-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 10px; }
+  .preset { padding: 8px 6px; border: 1px solid var(--line-soft); border-radius: 8px; background: rgba(0,0,0,.2); cursor: pointer; text-align: center; font-family: var(--font-head); font-size: 12px; font-weight: 700; letter-spacing: 1.4px; color: var(--text); transition: .15s; text-transform: uppercase; }
+  .preset:hover { border-color: var(--line2); }
+  .preset.active { border-color: var(--accent); color: var(--accent); background: var(--accentDim); box-shadow: 0 0 12px var(--accentDim); }
+  .preset .pval { font-family: var(--font-mono); font-size: 8.5px; font-weight: 400; color: var(--muted); margin-top: 3px; letter-spacing: 0; text-transform: none; }
+
+  /* Hazards / trace */
+  #hazardList { max-height: 170px; overflow-y: auto; }
+  .hz { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px dashed var(--line-soft); font-size: 10.5px; }
+  .hz:last-child { border-bottom: none; }
+  .hzL { display: flex; align-items: center; gap: 7px; color: var(--text); }
+  .hdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .hzR { color: var(--muted); font-family: var(--font-mono); font-size: 9.5px; }
+  #trace { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); max-height: 140px; overflow-y: auto; white-space: pre-wrap; line-height: 1.75; }
+  .st-det { color: var(--accent); } .st-loc { color: #7dd3fc; } .st-tx { color: var(--orange); } .st-dec { color: var(--green); } .st-fec { color: var(--purple); }
+
+  /* AI */
+  #aiAdvice { font-size: 11.5px; line-height: 1.55; color: var(--text); padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--accentDim); border-radius: 0 8px 8px 0; margin-bottom: 4px; }
+
+  @media (max-width: 1500px) {
+    #main { grid-template-columns: 340px 1fr 340px; }
+    #topbar { grid-template-columns: 280px 1fr 240px; }
+    .kpi .kv { font-size: 22px; }
+  }
+
+  /* ===== VIEW TABS + ORBITAL VIEW ===== */
+  #app { grid-template-rows: 78px 34px 1fr; }
+  #viewtabs { display: flex; justify-content: center; align-items: center; gap: 8px; }
+  .vtab { padding: 6px 30px; border-radius: 22px; border: 1px solid transparent; font-family: var(--font-head); font-size: 13px; font-weight: 700; letter-spacing: 2.4px; text-transform: uppercase; color: var(--muted); cursor: pointer; transition: .15s; user-select: none; }
+  .vtab:hover { color: var(--text); }
+  .vtab.active { border-color: var(--accent); color: var(--bright); background: var(--accentDim); box-shadow: 0 0 16px var(--accentDim); }
+  #orbital { display: grid; grid-template-columns: 350px 1fr 350px; grid-template-rows: minmax(0, 1fr) 215px; gap: 10px; min-height: 0; }
+  #orbIns { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; min-height: 0; }
+  #orbIns .p-body { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .ins-title { text-align: center; font-family: var(--font-head); font-size: 11px; letter-spacing: 2.4px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  .ins-card { position: relative; display: flex; gap: 12px; padding: 12px; border-radius: 10px; background: linear-gradient(135deg, rgba(25,181,201,.14), rgba(0,0,0,.25)); border: 1px solid var(--line-soft); }
+  .ins-card .ico { width: 64px; height: 64px; flex-shrink: 0; color: var(--accent); filter: drop-shadow(0 0 8px var(--accentGlow)); }
+  .ins-card .tag { font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); }
+  .ins-card .tt { font-family: var(--font-head); font-size: 17px; font-weight: 700; color: var(--bright); line-height: 1.15; margin: 2px 0 6px; }
+  .ins-card .tx { font-size: 10.5px; line-height: 1.5; color: var(--text); }
+  .ins-card .chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 9.5px; padding: 3px 9px; border-radius: 12px; background: var(--yellowDim); color: var(--yellow); border: 1px solid rgba(245,180,58,.35); }
+  .ins-card .chip.ok { background: var(--greenDim); color: var(--green); border-color: rgba(61,220,151,.35); }
+  .ins-card .chip.bad { background: var(--redDim); color: var(--red); border-color: rgba(255,93,108,.35); }
+  .ins-card .go { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--accent); cursor: pointer; }
+  .ins-card .go:hover { background: var(--accentDim); }
+
+  #orbGlobeWrap { grid-column: 2; grid-row: 1; position: relative; overflow: hidden; min-height: 0; background: radial-gradient(circle at 50% 50%, rgba(25,181,201,.12), rgba(2,10,16,.95) 72%); }
+  #orbGlobe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #orbExplore { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); padding: 9px 34px; border-radius: 24px; border: 1px solid var(--accent); background: rgba(3,16,26,.8); color: var(--bright); font-family: var(--font-head); font-size: 14px; font-weight: 700; letter-spacing: 2px; cursor: pointer; box-shadow: 0 0 18px var(--accentDim); }
+  #orbExplore:hover { background: var(--accentDim); }
+  #orbAsk { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(460px, 86%); display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; border-radius: 24px; background: rgba(3,16,26,.82); border: 1px solid var(--line); }
+  #orbAsk input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: var(--font-ui); font-size: 11.5px; }
+  #orbAsk input::placeholder { color: var(--muted); }
+  #orbAsk button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--accentDim); color: var(--accent); cursor: pointer; }
+  #orbTitle { position: absolute; top: 12px; left: 16px; pointer-events: none; }
+  #orbTitle .t { font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: 3px; color: var(--bright); }
+  #orbTitle .s { font-size: 9px; letter-spacing: 1.6px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  #orbMode { position: absolute; top: 14px; right: 16px; }
+
+  #orbRight { grid-column: 3; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  #orbDetail .p-body { padding-top: 10px; }
+  .code-h { font-family: var(--font-head); font-size: 26px; font-weight: 700; letter-spacing: 2px; color: var(--bright); line-height: 1; }
+  .code-k { font-size: 9.5px; letter-spacing: 1.6px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .code-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin-top: 14px; }
+  .code-grid .v { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--bright); line-height: 1.1; }
+  .code-grid .v small { font-size: 12px; color: var(--muted); margin-left: 3px; font-weight: 500; }
+  #orbRadarWrap { flex: 1; min-height: 190px; position: relative; overflow: hidden; background: linear-gradient(160deg, rgba(25,181,201,.35), rgba(3,16,26,.95) 70%); }
+  #orbRadar { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #orbRadarWrap .lbl { position: absolute; top: 10px; left: 14px; font-family: var(--font-head); font-size: 12px; letter-spacing: 2px; color: var(--bright); text-transform: uppercase; pointer-events: none; }
+  #orbRadarWrap .rng { position: absolute; bottom: 8px; right: 12px; font-family: var(--font-mono); font-size: 9px; color: var(--accent); pointer-events: none; }
+
+  #orbBottom { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+  #orbBottom .panel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .ev-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ev { padding: 8px 9px; border-radius: 8px; background: rgba(0,0,0,.25); border: 1px solid var(--line-soft); min-width: 0; }
+  .ev .d { font-family: var(--font-mono); font-size: 9px; color: var(--accent); background: var(--accentDim); border-radius: 8px; padding: 2px 7px; display: inline-block; }
+  .ev .n { font-size: 10.5px; color: var(--bright); margin: 6px 0 4px; line-height: 1.3; word-break: break-word; }
+  .ev .s { font-size: 9px; color: var(--muted); }
+  .cat { display: grid; grid-template-columns: 110px 1fr 40px; align-items: center; gap: 10px; padding: 6px 0; font-size: 10.5px; color: var(--text); }
+  .cat .bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .cat .bar b { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: 0 0 6px var(--accentGlow); transition: width .5s; }
+  .cat .n { text-align: right; font-family: var(--font-mono); color: var(--bright); }
+
+  /* ===== VIEW SWITCHING (mission / orbital / security) ===== */
+  #orbital, #security { display: none; }
+  #app[data-view="orbital"] #orbital { display: grid; }
+  #app[data-view="security"] #security { display: grid; }
+  #app[data-view="orbital"] #main,
+  #app[data-view="security"] #main { display: none; }
+
+  /* ===== SECURITY VIEW ===== */
+  #security { grid-template-columns: 350px 1fr 350px; grid-template-rows: minmax(0, 1fr) 215px; gap: 10px; min-height: 0; }
+  #secIns { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; min-height: 0; }
+  #secIns .p-body { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+  #secCenterWrap { grid-column: 2; grid-row: 1; position: relative; overflow: hidden; min-height: 0; background: radial-gradient(circle at 50% 50%, rgba(61,220,151,.10), rgba(2,10,16,.95) 72%); }
+  #secRing { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #secCenterTitle { position: absolute; top: 12px; left: 16px; pointer-events: none; }
+  #secCenterTitle .t { font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: 3px; color: var(--bright); }
+  #secCenterTitle .s { font-size: 9px; letter-spacing: 1.6px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  #secCenterBadge { position: absolute; top: 14px; right: 16px; }
+  #secRingReadout { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); text-align: center; pointer-events: none; }
+  #secRingReadout .big { font-family: var(--font-head); font-size: 40px; font-weight: 700; color: var(--bright); line-height: 1; text-shadow: 0 0 20px var(--greenGlow, rgba(61,220,151,.5)); }
+  #secRingReadout .lbl { font-size: 9.5px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+
+  #secRight { grid-column: 3; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  #secDetail .p-body { padding-top: 10px; }
+  #secPulseWrap { flex: 1; min-height: 190px; position: relative; overflow: hidden; background: linear-gradient(160deg, rgba(61,220,151,.30), rgba(3,16,26,.95) 70%); }
+  #secPulse { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #secPulseWrap .lbl { position: absolute; top: 10px; left: 14px; font-family: var(--font-head); font-size: 12px; letter-spacing: 2px; color: var(--bright); text-transform: uppercase; pointer-events: none; }
+  #secPulseWrap .rng { position: absolute; bottom: 8px; right: 12px; font-family: var(--font-mono); font-size: 9px; color: var(--green); pointer-events: none; }
+
+  #secBottom { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+  #secBottom .panel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .ev.auth-fail { border-color: rgba(255,93,108,.4); background: rgba(255,93,108,.08); }
+  .ev.auth-ok .d { color: var(--green); background: var(--greenDim); }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ========== TOP BAR ========== -->
+  <div id="topbar">
+    <div id="tbBrand" class="panel">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18M3 12h18"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">MISSION CONTROL</div>
+        <div class="logo-sub">C.R.A.T.E.R &middot; ATEC&rsquo;26 ESPRIT</div>
+      </div>
+    </div>
+
+    <div id="tbKpis">
+      <div class="kpi panel" id="kpiSurvBox"><div class="kl">Link Survival <i>RX</i></div><div class="kv"><span id="kpiSurv">--</span><small>%</small></div><div class="kb"><b id="kpiSurvBar"></b></div></div>
+      <div class="kpi panel"><div class="kl">Latency <i>RTT</i></div><div class="kv"><span id="kpiLat">--</span><small>ms</small></div><div class="kb"><b id="kpiLatBar"></b></div></div>
+      <div class="kpi panel" id="kpiLossBox"><div class="kl">Packet Loss <i>FEC</i></div><div class="kv"><span id="kpiLoss">--</span><small>%</small></div><div class="kb"><b id="kpiLossBar"></b></div></div>
+      <div class="kpi panel"><div class="kl">Hazards <i>TRK</i></div><div class="kv"><span id="kpiHaz">0</span></div><div class="kb"><b id="kpiHazBar"></b></div></div>
+      <div class="kpi panel"><div class="kl">FEC Recovered <i>ECC</i></div><div class="kv"><span id="kpiFec">0</span></div><div class="kb"><b id="kpiFecBar"></b></div></div>
+    </div>
+
+    <div id="tbStatus" class="panel">
+      <div class="tb-stack">
+        <div class="indicator"><span class="dot off" id="wsLed"></span><span id="wsLabel">LINK DOWN</span></div>
+        <div class="indicator"><span class="dot off" id="pipeLed"></span><span id="pipeLabel">PIPELINE</span></div>
+      </div>
+      <div class="tb-clock">
+        <div id="missionClock">T+00:00:00</div>
+        <span id="frameCounter">F#0</span>
+      </div>
+      <div class="mc-btn" id="sfxToggle" title="New-hazard alert sound (S)" onclick="toggleSfx()" style="padding:0 9px;font-size:10px;letter-spacing:.8px;">&#128266; SFX</div>
+    </div>
+  </div>
+
+
+  <!-- ========== VIEW TABS ========== -->
+  <div id="viewtabs">
+    <div class="vtab active" data-view="mission" onclick="setView('mission')">Mission View</div>
+    <div class="vtab" data-view="orbital" onclick="setView('orbital')">Orbital View</div>
+    <div class="vtab" data-view="security" onclick="setView('security')">Security View</div>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="ico-rover" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="14" y="30" width="30" height="12" rx="3" fill="rgba(46,230,214,.12)"/>
+      <path d="M44 33l8-6M52 27v-8M48 19h8"/>
+      <circle cx="49" cy="17" r="3"/>
+      <path d="M20 30l4-8h12l4 8"/>
+      <circle cx="18" cy="48" r="5"/><circle cx="30" cy="48" r="5"/><circle cx="42" cy="48" r="5"/>
+      <path d="M8 56h48" opacity=".4"/>
+      <path d="M22 24l-8-4M14 20l-4 6 8 4" opacity=".7"/>
+    </symbol>
+    <symbol id="ico-link" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="20" cy="46" r="5"/><path d="M20 41V26M10 26h20"/>
+      <path d="M36 28a12 12 0 0 1 12 12M36 18a22 22 0 0 1 22 22M36 38a2 2 0 1 0 0 .1"/>
+    </symbol>
+    <symbol id="ico-crater" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="32" cy="38" rx="22" ry="10"/><ellipse cx="32" cy="38" rx="12" ry="5" opacity=".6"/>
+      <path d="M10 38c0-8 10-22 22-22s22 14 22 22" opacity=".5"/>
+    </symbol>
+  </svg>
+
+  <!-- ========== MAIN ========== -->
+
+    <!-- ========== ORBITAL VIEW ========== -->
+    <div id="orbital">
+      <div id="orbIns" class="panel">
+        <div class="p-head"><h3>AI Insights</h3><span class="badge badge-accent" id="orbAiBadge">LIVE</span></div>
+        <div class="p-body">
+          <div class="ins-title">Prediction</div>
+          <div class="ins-card">
+            <svg class="ico"><use href="#ico-link"/></svg>
+            <div>
+              <div class="tag">Downlink outlook</div>
+              <div class="tt" id="insPredTitle">Awaiting data</div>
+              <div class="tx" id="insPredText">Collecting link telemetry...</div>
+              <span class="chip ok" id="insPredChip">&#9679; nominal</span>
+            </div>
+          </div>
+          <div class="ins-title">About to expire</div>
+          <div class="ins-card">
+            <svg class="ico"><use href="#ico-crater"/></svg>
+            <div>
+              <div class="tag">Hazard map confidence</div>
+              <div class="tt" id="insExpTitle">0 stale hazards</div>
+              <div class="tx" id="insExpText">Hazards fade when not re-observed.</div>
+              <span class="chip ok" id="insExpChip">&#9679; map fresh</span>
+            </div>
+          </div>
+          <div class="ins-title">Recommendations</div>
+          <div class="ins-card">
+            <svg class="ico"><use href="#ico-rover"/></svg>
+            <div>
+              <div class="tag">Local Mission Advisor</div>
+              <div class="tt" id="insRecTitle">Mission assessment</div>
+              <div class="tx" id="insRecText">Press the arrow or use the bar below the globe to request a live assessment.</div>
+              <span class="chip" id="insRecChip">&#9679; standby</span>
+            </div>
+            <div class="go" title="Request assessment" onclick="orbAsk()">&#10140;</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="orbGlobeWrap" class="panel">
+        <canvas id="orbGlobe"></canvas>
+        <div id="orbTitle"><div class="t">LUNAR SURFACE</div><div class="s">hazards &amp; rover projected on surface</div></div>
+        <div id="orbMode" class="badge badge-accent">LOCKED ON SITE</div>
+        <div id="orbExplore" onclick="orbToggleSpin()">Explore</div>
+        <div id="orbAsk">
+          <input id="orbAskInput" placeholder="Ask the co-pilot for a live assessment..." onkeydown="if(event.key==='Enter')orbAsk()">
+          <button onclick="orbAsk()">&#10148;</button>
+        </div>
+      </div>
+
+      <div id="orbRight">
+        <div id="orbDetail" class="panel">
+          <div class="p-head"><h3>Rover Detail</h3><span class="badge" id="orbRoverState">ACTIVE</span></div>
+          <div class="p-body">
+            <div class="code-k">Code</div>
+            <div class="code-h">ROVER-01</div>
+            <div class="code-grid">
+              <div><div class="code-k">Position</div><div class="v" id="oPos">--</div></div>
+              <div><div class="code-k">Heading</div><div class="v" id="oHdg">--</div></div>
+              <div><div class="code-k">Speed</div><div class="v" id="oSpd">--</div></div>
+              <div><div class="code-k">Detections</div><div class="v" id="oDet">--</div></div>
+              <div><div class="code-k">Link survival</div><div class="v" id="oSurv">--</div></div>
+              <div><div class="code-k">Mode</div><div class="v" id="oMode" style="font-size:17px">--</div></div>
+            </div>
+            <div class="code-k" style="margin-top:14px">Purpose</div>
+            <div style="font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--bright);letter-spacing:1px;">Hazard mapping &middot; stereo depth</div>
+          </div>
+        </div>
+        <div id="orbRadarWrap" class="panel">
+          <canvas id="orbRadar"></canvas>
+          <div class="lbl">Proximity radar</div>
+          <div class="rng">RANGE 12 m</div>
+        </div>
+      </div>
+
+      <div id="orbBottom">
+        <div class="panel">
+          <div class="p-head"><h3>Recent Pipeline Events</h3><span class="badge badge-accent">LIVE</span></div>
+          <div class="p-body"><div class="ev-row" id="orbEvents"></div></div>
+        </div>
+        <div class="panel">
+          <div class="p-head"><h3>Hazards by Class</h3><span class="badge badge-accent" id="orbCatTotal">0</span></div>
+          <div class="p-body" id="orbCats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== SECURITY VIEW ========== -->
+    <div id="security">
+      <div id="secIns" class="panel">
+        <div class="p-head"><h3>Link Security</h3><span class="badge badge-ok" id="secViewBadge">AEAD ACTIVE</span></div>
+        <div class="p-body">
+          <div class="ins-title">Cipher</div>
+          <div class="ins-card">
+            <svg class="ico"><use href="#ico-link"/></svg>
+            <div>
+              <div class="tag">Authenticated Encryption</div>
+              <div class="tt">ChaCha20-Poly1305</div>
+              <div class="tx">Confidentiality and tamper-rejection as one AEAD call. Every wire packet carries its own random 96-bit nonce, so packet loss or reordering on the lossy link never breaks decryption of what does arrive.</div>
+              <span class="chip ok">&#9679; no plaintext on the wire</span>
+            </div>
+          </div>
+          <div class="ins-title">Key handling</div>
+          <div class="ins-card">
+            <svg class="ico"><use href="#ico-crater"/></svg>
+            <div>
+              <div class="tag">HKDF-SHA256</div>
+              <div class="tt">256-bit derived mission key</div>
+              <div class="tx">This demo key is derived locally for reproducibility. A flight system would instead provision it through a secure pre-launch ground exchange &mdash; there is no "login" on a one-way space link.</div>
+              <span class="chip">&#9679; local only, zero network calls</span>
+            </div>
+          </div>
+          <div class="ins-title">Guarantee</div>
+          <div class="ins-card">
+            <svg class="ico"><use href="#ico-rover"/></svg>
+            <div>
+              <div class="tag">On tamper or corruption</div>
+              <div class="tt">Packet rejected before decode</div>
+              <div class="tx">A modified ciphertext fails Poly1305 authentication and is dropped before it ever reaches the telemetry decoder &mdash; never silently accepted as a valid, wrong position.</div>
+              <span class="chip ok" id="secGuaranteeChip">&#9679; 0 rejected this run</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="secCenterWrap" class="panel">
+        <canvas id="secRing"></canvas>
+        <div id="secCenterTitle"><div class="t">AUTHENTICATION RATE</div><div class="s">encrypted vs. authenticated packets, live</div></div>
+        <div id="secCenterBadge" class="badge badge-ok">LIVE</div>
+        <div id="secRingReadout"><div class="big" id="secRingPct">100%</div><div class="lbl">packets authenticated</div></div>
+      </div>
+
+      <div id="secRight">
+        <div id="secDetail" class="panel">
+          <div class="p-head"><h3>Crypto Parameters</h3><span class="badge">AEAD</span></div>
+          <div class="p-body">
+            <div class="code-k">Algorithm</div>
+            <div class="code-h">ChaCha20-Poly1305</div>
+            <div class="code-grid">
+              <div><div class="code-k">Key size</div><div class="v">256<small>bit</small></div></div>
+              <div><div class="code-k">Nonce</div><div class="v">96<small>bit, random</small></div></div>
+              <div><div class="code-k">Auth tag</div><div class="v">128<small>bit Poly1305</small></div></div>
+              <div><div class="code-k">KDF</div><div class="v" style="font-size:16px">HKDF-SHA256</div></div>
+              <div><div class="code-k">Encrypted</div><div class="v" id="secRightEnc">0</div></div>
+              <div><div class="code-k">Auth OK</div><div class="v" id="secRightOk">0</div></div>
+            </div>
+            <div class="code-k" style="margin-top:14px">Layer boundary</div>
+            <div style="font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--bright);letter-spacing:.5px;line-height:1.3">Wraps OUTSIDE CRC8 + FEC &mdash; parity XOR math stays on plaintext bytes</div>
+            <div class="code-k" style="margin-top:14px">Live proof</div>
+            <div class="hint" style="margin-bottom:8px">Corrupts one ciphertext byte on the next packet and hands it straight to the receiver &mdash; watch it get rejected in Auth Events below, live.</div>
+            <div class="btn-row"><button class="btn danger" id="attackBtn" style="width:100%" onclick="simulateAttack()">&#9888; SIMULATE ATTACK (inject tampered packet)</button></div>
+            <div class="m-row" style="margin-top:8px"><span class="mk">Attacks simulated</span><span class="mv" id="secTampered" style="color:var(--red)">0</span></div>
+          </div>
+        </div>
+        <div id="secPulseWrap" class="panel">
+          <canvas id="secPulse"></canvas>
+          <div class="lbl">Auth throughput</div>
+          <div class="rng" id="secPulseRate">0 pkt/s</div>
+        </div>
+      </div>
+
+      <div id="secBottom">
+        <div class="panel">
+          <div class="p-head"><h3>Auth Events</h3><span class="badge badge-accent">LIVE</span></div>
+          <div class="p-body"><div class="ev-row" id="secEvents"></div></div>
+        </div>
+        <div class="panel">
+          <div class="p-head"><h3>Security Posture</h3><span class="badge badge-ok" id="secPostureBadge">NOMINAL</span></div>
+          <div class="p-body" id="secPosture"></div>
+        </div>
+      </div>
+    </div>
+
+  <div id="main">
+    <!-- ===== LEFT COLUMN ===== -->
+    <div id="leftCol">
+      <div class="panel">
+        <div class="p-head"><h3>Stereo Vision</h3><span class="badge badge-accent"><span class="rec"></span>LIVE</span></div>
+        <div id="cameraFeed">
+          <div class="no-feed" id="noFeedMsg">AWAITING CAMERA SIGNAL...</div>
+          <img id="camImg" style="display:none" alt="rover camera">
+          <div class="overlay-br" id="feedMeta"></div>
+        </div>
+        <div class="feed-labels"><span>Left camera &middot; hazard overlay</span><span>Disparity &middot; depth map</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Rover Telemetry</h3><span class="badge" id="roverState">ACTIVE</span></div>
+        <div class="p-body two-col">
+          <div class="m-row"><span class="mk">Pos X</span><span class="mv" id="rvX">&mdash;</span></div>
+          <div class="m-row"><span class="mk">Pos Y</span><span class="mv" id="rvY">&mdash;</span></div>
+          <div class="m-row"><span class="mk">Heading</span><span class="mv" id="rvHdg">&mdash;</span></div>
+          <div class="m-row"><span class="mk">Speed</span><span class="mv" id="rvSpd">&mdash;</span></div>
+          <div class="m-row"><span class="mk">Detections</span><span class="mv" id="rvDet">&mdash;</span></div>
+          <div class="m-row"><span class="mk">Tracked</span><span class="mv" id="rvTracked">&mdash;</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Rover Control</h3><span class="badge badge-ok">LIVE</span></div>
+        <div class="p-body">
+          <div class="ctrl-row">
+            <div class="ctrl-label"><span>Traverse speed</span><span class="cv" id="speedVal">0.15 m/f</span></div>
+            <input type="range" id="speedSlider" min="2" max="50" value="15">
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="pauseBtn" onclick="togglePause()">PAUSE</button>
+            <button class="btn danger" id="resetBtn" onclick="resetPipeline()">RESET</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn warn" id="flareBtn" onclick="toggleFlare()">&#9889; Simulate Solar Flare</button>
+          </div>
+          <div class="micro" style="margin-top:12px">Hazard detector <span id="detActive" style="color:var(--accent);float:right">DEPTH</span></div>
+          <div class="btn-row" style="margin-top:4px">
+            <button class="btn det-btn active" data-det="depth" onclick="setDetector('depth')">Depth</button>
+            <button class="btn det-btn" data-det="yolo" onclick="setDetector('yolo')">YOLO</button>
+            <button class="btn det-btn" data-det="both" onclick="setDetector('both')">Both</button>
+          </div>
+          <div class="micro" style="margin-top:12px">Field of view <span id="fovActive" style="color:var(--accent);float:right">360&deg; (6 sectors)</span></div>
+          <div class="btn-row" style="margin-top:4px">
+            <button class="btn active" id="fov360Btn" style="width:100%" onclick="toggleFov360()">360&deg; SWEEP: ON</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Resilience &middot; FEC</h3><span class="badge" id="fecBadge">ON</span></div>
+        <div class="p-body">
+          <div class="hint">Toggle live to show the receiver losing single-packet recovery mid-run.</div>
+          <div class="btn-row"><button class="btn active" id="fecToggleBtn" onclick="toggleFec()">FEC: ON</button></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Link Security</h3><span class="badge badge-ok" id="securityBadge">ChaCha20-Poly1305</span></div>
+        <div class="p-body">
+          <div class="hint">Every wire packet is AEAD-encrypted and authenticated. A tampered or corrupted packet fails authentication and is dropped before it ever reaches the telemetry decoder.</div>
+          <div class="m-row"><span class="mk">Packets encrypted</span><span class="mv" id="secEncrypted" style="color:var(--accent)">0</span></div>
+          <div class="m-row"><span class="mk">Authenticated OK</span><span class="mv" id="secAuthOk" style="color:var(--green)">0</span></div>
+          <div class="m-row"><span class="mk">Auth failures</span><span class="mv" id="secAuthFail" style="color:var(--red)">0</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Pipeline Stats</h3></div>
+        <div class="p-body two-col">
+          <div class="m-row"><span class="mk">Frames</span><span class="mv" id="psFrames">0</span></div>
+          <div class="m-row"><span class="mk">Detections</span><span class="mv" id="psDetections">0</span></div>
+          <div class="m-row"><span class="mk">Packets</span><span class="mv" id="psPackets">0</span></div>
+          <div class="m-row"><span class="mk">Bytes</span><span class="mv" id="psBytes">0</span></div>
+          <div class="m-row"><span class="mk">FEC recov.</span><span class="mv" id="psFec" style="color:var(--purple)">0</span></div>
+          <div class="m-row"><span class="mk">FEC skipped</span><span class="mv" id="psFecSkipped" style="color:var(--orange)">0</span></div>
+          <div class="m-row"><span class="mk">Hazards</span><span class="mv" id="psHazards" style="color:var(--accent)">0</span></div>
+          <div class="m-row"><span class="mk">Uptime</span><span class="mv" id="psUptime">&mdash;</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CENTER: HAZARD MAP ===== -->
+    <div id="centerCol" class="panel">
+      <canvas id="map"></canvas>
+      <div id="mapHud">
+        Landing-site reference frame<br>
+        origin = <b>touchdown</b> &middot; grid = 2 m<br>
+        <span id="roverHudPos" style="color:var(--accent)">rover: (0.0, 0.0) hdg 0&deg;</span><br>
+        <span style="opacity:.55">drag pan &middot; scroll zoom &middot; dbl-click / F follow</span>
+      </div>
+      <div id="mapTitle">
+        <div class="t">HAZARD MAP</div>
+        <div class="s">real-time telemetry overlay</div>
+      </div>
+      <div id="mapLegend">
+        <div class="lg"><span class="ldot" style="background:var(--crater)"></span> Crater</div>
+        <div class="lg"><span class="ldot" style="background:var(--rock)"></span> Rock</div>
+        <div class="lg"><span class="ldot" style="background:#667"></span> Stale</div>
+        <div class="lg" style="opacity:.7"><span style="border:1px dashed var(--accent);width:8px;height:8px;border-radius:50%;display:inline-block;"></span> Uncertainty</div>
+      </div>
+      <div id="mapControls">
+        <span id="zoomLabel">100%</span>
+        <div class="mc-row">
+          <div class="mc-btn" id="followBtn" title="Follow rover (F)" onclick="toggleFollow()">&#9679;</div>
+          <div class="mc-btn" id="zoomInBtn" title="Zoom in (+)" onclick="zoomBy(1.3)">+</div>
+          <div class="mc-btn" id="zoomOutBtn" title="Zoom out (-)" onclick="zoomBy(1/1.3)">&minus;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT SIDEBAR ===== -->
+    <div id="rightCol">
+      <div class="panel">
+        <div class="p-head"><h3>Mission Advisor <span style="font-weight:400;color:var(--muted);font-size:10px;">(local, offline)</span></h3><span class="badge badge-accent" id="aiStatus">STANDBY</span></div>
+        <div class="p-body">
+          <div class="hint">Local retrieval + rule engine over an onboard aerospace knowledge base. No network call, ever -- matches the "no cloud" constraint this whole mission runs under.</div>
+          <div id="aiAdvice">"Awaiting telemetry analysis..."</div>
+          <div class="btn-row"><button class="btn primary" id="btnRequestAi" onclick="requestAiAdvice()">Request Assessment</button></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Link Health</h3><span class="badge badge-ok" id="linkBadge">HEALTHY</span></div>
+        <div class="p-body">
+          <div class="stat-grid">
+            <div class="stat-box green"><div class="sv" id="survRate">--</div><div class="sl">Survival %</div></div>
+            <div class="stat-box accent"><div class="sv" id="linkBw">--</div><div class="sl">Bandwidth B/s</div></div>
+            <div class="stat-box orange"><div class="sv" id="linkLat">--</div><div class="sl">Latency ms</div></div>
+            <div class="stat-box red"><div class="sv" id="linkLoss">--</div><div class="sl">Loss %</div></div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="sv" style="font-size:16px" id="pktSent">0</div><div class="sl">Sent</div></div>
+            <div class="stat-box"><div class="sv" style="font-size:16px" id="pktDel">0</div><div class="sl">Delivered</div></div>
+            <div class="stat-box"><div class="sv" style="font-size:16px;color:var(--red)" id="pktDropL">0</div><div class="sl">Lost (signal)</div></div>
+            <div class="stat-box"><div class="sv" style="font-size:16px;color:var(--orange)" id="pktDropB">0</div><div class="sl">Lost (BW)</div></div>
+          </div>
+          <div class="micro">Survival rate history</div>
+          <div id="chartWrap"><canvas id="perfChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Link Emulator</h3><span class="badge badge-accent">LIVE CONTROL</span></div>
+        <div class="p-body">
+          <div class="micro" style="margin-top:0">Scenario presets</div>
+          <div class="preset-row">
+            <div class="preset active" onclick="applyPreset('nominal')" id="pre-nominal">NOMINAL<div class="pval">15% loss &middot; 150ms</div></div>
+            <div class="preset" onclick="applyPreset('degraded')" id="pre-degraded">DEGRADED<div class="pval">35% loss &middot; 400ms</div></div>
+            <div class="preset" onclick="applyPreset('storm')" id="pre-storm">SOLAR STORM<div class="pval">60% loss &middot; 800ms</div></div>
+            <div class="preset" onclick="applyPreset('crater')" id="pre-crater">DEEP CRATER<div class="pval">25% loss &middot; 1200ms</div></div>
+            <div class="preset" onclick="applyPreset('catastrophic')" id="pre-catastrophic" style="grid-column:1/-1;border-color:rgba(255,93,108,.45);color:var(--red);">CATASTROPHIC<div class="pval">90% loss &middot; 1800ms &mdash; worst case</div></div>
+          </div>
+          <div class="ctrl-row"><div class="ctrl-label"><span>Packet loss</span><span class="cv" id="lossVal">15%</span></div><input type="range" id="lossSlider" min="0" max="100" value="15"></div>
+          <div class="ctrl-row"><div class="ctrl-label"><span>Latency</span><span class="cv" id="latVal">150 ms</span></div><input type="range" id="latSlider" min="0" max="2000" value="150" step="10"></div>
+          <div class="ctrl-row"><div class="ctrl-label"><span>Bandwidth</span><span class="cv" id="bwVal">2000 B/s</span></div><input type="range" id="bwSlider" min="50" max="10000" value="2000" step="50"></div>
+          <div class="ctrl-row"><div class="ctrl-label"><span>Jitter</span><span class="cv" id="jitVal">60 ms</span></div><input type="range" id="jitSlider" min="0" max="500" value="60" step="5"></div>
+          <div class="btn-row"><button class="btn primary" id="applyBtn" onclick="applyLinkConfig()">APPLY TO LIVE LINK</button></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Tracked Hazards</h3><span class="badge badge-accent" id="hazardCount">0</span></div>
+        <div class="p-body"><div id="hazardList"><div style="color:var(--muted);font-size:10px;">no hazards detected yet</div></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="p-head"><h3>Pipeline Trace</h3><span class="badge badge-accent">LIVE</span></div>
+        <div class="p-body"><div id="trace">awaiting telemetry data...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   MISSION CONTROL — Project C.R.A.T.E.R
+   Real-time WebSocket dashboard with full pipeline control
+   ================================================================ */
+
+// ── State ──
+const hazards = new Map();
+let linkStats = {sent:0, delivered:0, dropped_loss:0, dropped_bandwidth:0, survival_rate:1};
+let linkConfig = {loss_rate:0.15, latency_ms:150, jitter_ms:60, bandwidth_bps:2000};
+let pipelineStats = {};
+let pipelineControl = {paused:false, speed:0.15};
+let roverInfo = {x:0, y:0, heading:0, frame:0};
+let missionStartMs = Date.now();
+let roverTrail = [];  // store last N positions for trail rendering
+const MAX_TRAIL = 200;
+const STALE_MS = 8000;
+const FADE_MS = 14000;
+
+// ── Map camera: pan/zoom, with optional auto-follow on the rover ──
+const camera = {x: 0, y: 0, zoom: 1, follow: true};
+let dragging = false;
+let dragLast = {x: 0, y: 0};
+let dragMoved = false;
+
+// ── Audio alert on new-hazard detection ──
+// Browsers block audio until a user gesture unlocks it, so the
+// AudioContext is created lazily on the first click anywhere on the page.
+let sfxEnabled = true;
+let audioCtx = null;
+function initAudio(){
+  if(audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch(e){ /* audio unsupported -- fail silent, never block the dashboard */ }
+}
+document.addEventListener('click', initAudio, {once: true});
+
+function playHazardBeep(kind){
+  if(!sfxEnabled || !audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = kind === 'rock' ? 740 : 920;
+    g.gain.value = 0.07;
+    o.connect(g); g.connect(audioCtx.destination);
+    const t = audioCtx.currentTime;
+    o.start(t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    o.stop(t + 0.15);
+  } catch(e){}
+}
+
+function toggleSfx(){
+  initAudio();
+  sfxEnabled = !sfxEnabled;
+  document.getElementById('sfxToggle').classList.toggle('follow-on', sfxEnabled);
+  document.getElementById('sfxToggle').innerHTML = (sfxEnabled ? '&#128266;' : '&#128263;') + ' SFX';
+}
+
+// ── Canvas setup ──
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+function resize(){
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Map pan/zoom interaction ──
+// Dragging or scrolling the map is manual control: it drops out of
+// auto-follow immediately so the user's own pan/zoom always wins.
+canvas.addEventListener('mousedown', e => {
+  dragging = true;
+  dragMoved = false;
+  dragLast = {x: e.clientX, y: e.clientY};
+  canvas.classList.add('grabbing');
+});
+window.addEventListener('mousemove', e => {
+  if(!dragging) return;
+  const dx = e.clientX - dragLast.x, dy = e.clientY - dragLast.y;
+  if(Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+  if(dragMoved){
+    const scale = (Math.min(canvas.width, canvas.height) / 30) * camera.zoom;
+    camera.x -= (dx * devicePixelRatio) / scale;
+    camera.y += (dy * devicePixelRatio) / scale;
+    camera.follow = false;
+    document.getElementById('followBtn').classList.remove('follow-on');
+    dragLast = {x: e.clientX, y: e.clientY};
+  }
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  canvas.classList.remove('grabbing');
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+  zoomBy(factor);
+}, {passive: false});
+canvas.addEventListener('dblclick', () => {
+  camera.follow = true;
+  document.getElementById('followBtn').classList.add('follow-on');
+});
+document.getElementById('followBtn').classList.add('follow-on');
+document.getElementById('sfxToggle').classList.add('follow-on');
+setZoomLabel();
+
+// ── Rolling chart ──
+const chartCanvas = document.getElementById('perfChart');
+const chartCtx = chartCanvas.getContext('2d');
+const chartHistory = [];   // {t, survival}
+const MAX_CHART = 120;     // 60 seconds at 0.5s interval
+
+function drawChart(){
+  const c = chartCanvas;
+  c.width = c.clientWidth * devicePixelRatio;
+  c.height = c.clientHeight * devicePixelRatio;
+  const W = c.width, H = c.height;
+  const cx = chartCtx;
+
+  // Background
+  cx.fillStyle = 'rgba(13,17,23,0.6)';
+  cx.fillRect(0,0,W,H);
+
+  // Grid lines at 25%, 50%, 75%
+  cx.strokeStyle = 'rgba(30,50,65,0.5)';
+  cx.lineWidth = 1;
+  [0.25, 0.5, 0.75].forEach(v => {
+    const y = H - v * H;
+    cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke();
+  });
+
+  if(chartHistory.length < 2) return;
+
+  // Draw area fill
+  cx.beginPath();
+  cx.moveTo(0, H);
+  chartHistory.forEach((p, i) => {
+    const x = (i / (MAX_CHART - 1)) * W;
+    const y = H - p.survival * H;
+    if(i === 0) cx.lineTo(x, y);
+    else cx.lineTo(x, y);
+  });
+  cx.lineTo(((chartHistory.length - 1) / (MAX_CHART - 1)) * W, H);
+  cx.closePath();
+  const grad = cx.createLinearGradient(0, 0, 0, H);
+  const lastVal = chartHistory[chartHistory.length - 1].survival;
+  const lineColor = lastVal > 0.8 ? '45,206,137' : lastVal > 0.5 ? '255,195,18' : '255,71,87';
+  grad.addColorStop(0, `rgba(${lineColor},0.25)`);
+  grad.addColorStop(1, `rgba(${lineColor},0.02)`);
+  cx.fillStyle = grad;
+  cx.fill();
+
+  // Draw line
+  cx.beginPath();
+  chartHistory.forEach((p, i) => {
+    const x = (i / (MAX_CHART - 1)) * W;
+    const y = H - p.survival * H;
+    if(i === 0) cx.moveTo(x, y);
+    else cx.lineTo(x, y);
+  });
+  cx.strokeStyle = `rgb(${lineColor})`;
+  cx.lineWidth = 1.5 * devicePixelRatio;
+  cx.stroke();
+
+  // Current value label
+  cx.fillStyle = `rgb(${lineColor})`;
+  cx.font = `bold ${9 * devicePixelRatio}px ui-monospace,monospace`;
+  const lastX = ((chartHistory.length - 1) / (MAX_CHART - 1)) * W;
+  const lastY = H - lastVal * H;
+  cx.fillText(`${(lastVal*100).toFixed(1)}%`, Math.min(lastX + 4, W - 40), Math.max(lastY - 4, 12));
+}
+
+// ── Mission clock ──
+function updateClock(){
+  const elapsed = Math.floor((Date.now() - missionStartMs) / 1000);
+  const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+  const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+  const s = (elapsed % 60).toString().padStart(2, '0');
+  document.getElementById('missionClock').textContent = `T+${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+
+// ── Map rendering ──
+function worldToScreen(x, y){
+  const w = canvas.width, h = canvas.height;
+  const scale = (Math.min(w, h) / 30) * camera.zoom;
+  return { sx: w/2 + (x - camera.x)*scale, sy: h/2 - (y - camera.y)*scale, scale };
+}
+
+function screenToWorld(sx, sy){
+  const w = canvas.width, h = canvas.height;
+  const scale = (Math.min(w, h) / 30) * camera.zoom;
+  return { x: (sx - w/2) / scale + camera.x, y: -(sy - h/2) / scale + camera.y };
+}
+
+function setZoomLabel(){
+  document.getElementById('zoomLabel').textContent = Math.round(camera.zoom * 100) + '%';
+}
+
+function zoomBy(factor){
+  camera.zoom = Math.min(8, Math.max(0.15, camera.zoom * factor));
+  setZoomLabel();
+}
+
+function toggleFollow(){
+  camera.follow = !camera.follow;
+  document.getElementById('followBtn').classList.toggle('follow-on', camera.follow);
+}
+
+function colorForKind(kind){ return kind === 'rock' ? '255,157,77' : '79,168,255'; }
+
+function draw(){
+  const w = canvas.width, h = canvas.height;
+
+  // Auto-follow: smoothly glide the camera toward the rover's current
+  // position every frame, unless the user has taken manual control
+  // (dragged or scrolled) -- see toggleFollow() / the drag handlers below.
+  if(camera.follow){
+    camera.x += (roverInfo.x - camera.x) * 0.08;
+    camera.y += (roverInfo.y - camera.y) * 0.08;
+  }
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid -- anchored to the world origin's actual screen position so it
+  // pans correctly with the camera instead of staying pinned to center.
+  const origin = worldToScreen(0, 0);
+  const scale = origin.scale;
+  const gridStep = 2 * scale;
+  ctx.strokeStyle = 'rgba(40,60,80,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const gx0 = ((origin.sx % gridStep) + gridStep) % gridStep;
+  const gy0 = ((origin.sy % gridStep) + gridStep) % gridStep;
+  for(let gx = gx0; gx < w; gx += gridStep){ ctx.moveTo(gx, 0); ctx.lineTo(gx, h); }
+  for(let gy = gy0; gy < h; gy += gridStep){ ctx.moveTo(0, gy); ctx.lineTo(w, gy); }
+  ctx.stroke();
+
+  // Axes
+  const o = worldToScreen(0, 0);
+  ctx.strokeStyle = 'rgba(0,212,255,0.15)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, o.sy); ctx.lineTo(w, o.sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(o.sx, 0); ctx.lineTo(o.sx, h); ctx.stroke();
+
+  // Origin / lander marker
+  ctx.strokeStyle = 'rgba(0,212,255,0.5)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(o.sx-10, o.sy); ctx.lineTo(o.sx+10, o.sy);
+  ctx.moveTo(o.sx, o.sy-10); ctx.lineTo(o.sx, o.sy+10);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(o.sx, o.sy, 3, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,212,255,0.4)'; ctx.fill();
+  ctx.fillStyle = 'rgba(0,212,255,0.6)';
+  ctx.font = `bold ${9*devicePixelRatio}px sans-serif`;
+  ctx.fillText('LANDER', o.sx + 14, o.sy - 6);
+
+  // Rover trail
+  if(roverTrail.length > 1){
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0,212,255,0.08)';
+    ctx.lineWidth = 1.5;
+    for(let i = 0; i < roverTrail.length; i++){
+      const pt = worldToScreen(roverTrail[i].x, roverTrail[i].y);
+      if(i === 0) ctx.moveTo(pt.sx, pt.sy);
+      else ctx.lineTo(pt.sx, pt.sy);
+    }
+    ctx.stroke();
+
+    // Trail dots at intervals
+    for(let i = 0; i < roverTrail.length; i += 8){
+      const pt = worldToScreen(roverTrail[i].x, roverTrail[i].y);
+      ctx.beginPath();
+      ctx.arc(pt.sx, pt.sy, 1.5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,212,255,0.15)';
+      ctx.fill();
+    }
+  }
+
+  // Rover
+  const rv = worldToScreen(roverInfo.x, roverInfo.y);
+  const headingRad = roverInfo.heading * Math.PI / 180;
+
+  // FOV cone -- heading 0 = +y (up on screen needs negative canvas-y)
+  ctx.save();
+  ctx.translate(rv.sx, rv.sy);
+  // Canvas rotation: heading 0 means pointing up (-y on canvas), heading increases clockwise
+  const canvasAngle = headingRad;  // rotate CW from up
+  ctx.rotate(canvasAngle);
+
+  ctx.strokeStyle = 'rgba(0,212,255,0.1)';
+  ctx.fillStyle = 'rgba(0,212,255,0.025)';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-3.5*scale, -7*scale);
+  ctx.lineTo(3.5*scale, -7*scale);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Rover triangle
+  ctx.fillStyle = 'rgba(0,212,255,0.95)';
+  ctx.strokeStyle = 'rgba(0,212,255,0.5)';
+  ctx.lineWidth = 1;
+  const sz = 5 * devicePixelRatio / 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -sz*1.6);
+  ctx.lineTo(-sz, sz);
+  ctx.lineTo(sz, sz);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Glow
+  ctx.beginPath();
+  ctx.arc(0, 0, sz*3, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,212,255,0.06)';
+  ctx.fill();
+
+  ctx.restore();
+
+  // Hazards
+  const now = Date.now();
+  for(const [id, hz] of hazards){
+    const age = now - hz.lastSeen;
+    const stale = age > STALE_MS;
+    const fadeT = Math.min(1, age / FADE_MS);
+    const opacity = (1 - fadeT) * 0.7 + 0.15;
+    const {sx, sy, scale: s} = worldToScreen(hz.x, hz.y);
+    const col = colorForKind(hz.kind);
+
+    // Uncertainty ellipse
+    const uncRadiusX = Math.max(3, (hz.sx || 0.1) * s);
+    const uncRadiusY = Math.max(3, (hz.sy || 0.1) * s);
+    const uncAngle = (hz.angle || 0) * Math.PI / 180;
+    
+    ctx.beginPath();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = `rgba(${col},${0.4 * opacity})`;
+    ctx.lineWidth = 1.0;
+    // rotate canvas for heading? Or we can just use ctx.ellipse rotation, but remember canvas is rotated already!
+    // Wait, the canvas is NOT rotated here. The ctx.save()/ctx.restore() for the rover's FOV rotation was closed.
+    // So we just use ellipse().
+    ctx.ellipse(sx, sy, Math.max(3, uncRadiusX), Math.max(3, uncRadiusY), uncAngle, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Outer glow for active hazards
+    if(!stale){
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${col},${0.05 * opacity})`;
+      ctx.ellipse(sx, sy, Math.max(3, uncRadiusX) + (hz.confidence * 8), Math.max(3, uncRadiusY) + (hz.confidence * 8), uncAngle, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // Dot
+    const r = 4 + hz.confidence * 4;
+    ctx.beginPath();
+    ctx.fillStyle = stale ? `rgba(100,110,120,${0.3 * opacity})` : `rgba(${col},${hz.confidence * opacity + 0.1})`;
+    ctx.arc(sx, sy, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = stale ? 'rgba(180,60,60,0.5)' : `rgba(${col},0.7)`;
+    ctx.lineWidth = stale ? 1.5 : 1;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = `rgba(212,224,234,${0.7 * opacity})`;
+    ctx.font = `${8*devicePixelRatio}px ui-monospace,monospace`;
+    const label = stale ? `#${id} STALE` : `#${id} ${(hz.confidence*100).toFixed(0)}%`;
+    ctx.fillText(label, sx + r + 5, sy + 3);
+  }
+
+  document.getElementById('roverHudPos').textContent =
+    `rover: (${roverInfo.x.toFixed(1)}, ${roverInfo.y.toFixed(1)}) hdg ${roverInfo.heading.toFixed(0)}°`;
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ── WebSocket ──
+let ws;
+let sliderTouched = false;
+
+function connect(){
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => {
+    document.getElementById('wsLabel').textContent = 'CONNECTED';
+    document.getElementById('wsLed').classList.add('on');
+    document.getElementById('wsLed').classList.remove('off');
+    missionStartMs = Date.now();
+  };
+  ws.onclose = () => {
+    document.getElementById('wsLabel').textContent = 'RECONNECTING';
+    document.getElementById('wsLed').classList.remove('on');
+    document.getElementById('wsLed').classList.add('off');
+    setTimeout(connect, 1500);
+  };
+  ws.onerror = () => { ws.close(); };
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if(msg.type === 'hazard'){
+      if(!hazards.has(msg.hazard_id)) playHazardBeep(msg.kind);
+      hazards.set(msg.hazard_id, {
+        x: msg.x, y: msg.y, confidence: msg.confidence,
+        sx: msg.sx || 0.1, sy: msg.sy || 0.1, angle: msg.angle || 0.0, kind: msg.kind || 'crater',
+        lastSeen: Date.now(),
+      });
+    } else if(msg.type === 'link_stats'){
+      linkStats = msg.stats;
+      linkConfig = msg.config;
+
+      // Pipeline stats + control
+      if(msg.pipeline_stats) pipelineStats = msg.pipeline_stats;
+      if(msg.pipeline_control) pipelineControl = msg.pipeline_control;
+
+      renderLinkPanel();
+      renderPipelineStats();
+      updatePipelineUI();
+
+      // Chart history
+      chartHistory.push({t: Date.now(), survival: linkStats.survival_rate || 0});
+      if(chartHistory.length > MAX_CHART) chartHistory.shift();
+      drawChart();
+
+      // Sync sliders if user hasn't touched them
+      if(!sliderTouched){
+        document.getElementById('lossSlider').value = Math.round(linkConfig.loss_rate * 100);
+        document.getElementById('latSlider').value = Math.round(linkConfig.latency_ms);
+        document.getElementById('bwSlider').value = Math.round(linkConfig.bandwidth_bps);
+        document.getElementById('jitSlider').value = Math.round(linkConfig.jitter_ms);
+        updateSliderLabels();
+      }
+
+      // Pipeline LED
+      document.getElementById('pipeLed').classList.add('on');
+      document.getElementById('pipeLed').classList.remove('off');
+      document.getElementById('pipeLabel').textContent = pipelineControl.paused ? 'PAUSED' : 'RUNNING';
+
+    } else if(msg.type === 'camera_frame'){
+      const img = document.getElementById('camImg');
+      img.src = 'data:image/jpeg;base64,' + msg.image;
+      img.style.display = 'block';
+      document.getElementById('noFeedMsg').style.display = 'none';
+      document.getElementById('feedMeta').textContent = `${msg.width}×${msg.height}  ${msg.detections} det`;
+
+      roverInfo.x = msg.rover_x || 0;
+      roverInfo.y = msg.rover_y || 0;
+      roverInfo.heading = msg.rover_heading || 0;
+      roverInfo.frame = msg.frame_num || 0;
+
+      document.getElementById('rvX').textContent = roverInfo.x.toFixed(2) + ' m';
+      document.getElementById('rvY').textContent = roverInfo.y.toFixed(2) + ' m';
+      document.getElementById('rvHdg').textContent = roverInfo.heading.toFixed(1) + '°';
+      document.getElementById('rvDet').textContent = msg.detections;
+      document.getElementById('frameCounter').textContent = 'F#' + roverInfo.frame;
+
+      // Update trail
+      roverTrail.push({x: roverInfo.x, y: roverInfo.y});
+      if(roverTrail.length > MAX_TRAIL) roverTrail.shift();
+    }
+  };
+}
+connect();
+
+// ── Link panel rendering ──
+function renderLinkPanel(){
+  const sr = linkStats.survival_rate || 0;
+  document.getElementById('survRate').textContent = (sr * 100).toFixed(1);
+  document.getElementById('linkBw').textContent = Math.round(linkConfig.bandwidth_bps);
+  document.getElementById('linkLat').textContent = Math.round(linkConfig.latency_ms);
+  document.getElementById('linkLoss').textContent = Math.round(linkConfig.loss_rate * 100);
+  document.getElementById('pktSent').textContent = linkStats.sent || 0;
+  document.getElementById('pktDel').textContent = linkStats.delivered || 0;
+  document.getElementById('pktDropL').textContent = linkStats.dropped_loss || 0;
+  document.getElementById('pktDropB').textContent = linkStats.dropped_bandwidth || 0;
+
+  // Update badge
+  const badge = document.getElementById('linkBadge');
+  if(sr > 0.8){ badge.textContent = 'HEALTHY'; badge.className = 'badge badge-ok'; }
+  else if(sr > 0.5){ badge.textContent = 'DEGRADED'; badge.className = 'badge badge-warn'; }
+  else { badge.textContent = 'CRITICAL'; badge.className = 'badge badge-bad'; }
+}
+
+// ── Pipeline stats rendering ──
+function renderPipelineStats(){
+  const ps = pipelineStats;
+  document.getElementById('psFrames').textContent = ps.total_frames || 0;
+  document.getElementById('psDetections').textContent = ps.total_detections || 0;
+  document.getElementById('psPackets').textContent = ps.total_packets_sent || 0;
+  document.getElementById('psBytes').textContent = formatBytes(ps.total_bytes_sent || 0);
+  document.getElementById('psFec').textContent = ps.fec_recoveries || 0;
+  document.getElementById('psFecSkipped').textContent = ps.fec_skipped || 0;
+  document.getElementById('psHazards').textContent = ps.unique_hazards || 0;
+  document.getElementById('secEncrypted').textContent = ps.packets_encrypted || 0;
+  document.getElementById('secAuthOk').textContent = ps.packets_auth_ok || 0;
+  document.getElementById('secAuthFail').textContent = ps.packets_auth_failed || 0;
+
+  if(ps.start_time_ms){
+    const elapsed = Math.floor((Date.now() - ps.start_time_ms) / 1000);
+    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const s = (elapsed % 60).toString().padStart(2, '0');
+    document.getElementById('psUptime').textContent = m + ':' + s;
+  }
+}
+
+function formatBytes(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+// ── Pipeline control UI sync ──
+function updatePipelineUI(){
+  const ctrl = pipelineControl;
+  const pauseBtn = document.getElementById('pauseBtn');
+  if(ctrl.paused){
+    pauseBtn.textContent = 'RESUME';
+    pauseBtn.classList.add('active');
+    document.getElementById('roverState').textContent = 'PAUSED';
+    document.getElementById('roverState').style.background = 'var(--yellowDim)';
+    document.getElementById('roverState').style.color = 'var(--yellow)';
+  } else {
+    pauseBtn.textContent = 'PAUSE';
+    pauseBtn.classList.remove('active');
+    document.getElementById('roverState').textContent = 'ACTIVE';
+    document.getElementById('roverState').style.background = 'var(--accentDim)';
+    document.getElementById('roverState').style.color = 'var(--accent)';
+  }
+  document.getElementById('rvSpd').textContent = (ctrl.speed || 0.15).toFixed(2) + ' m/f';
+  document.getElementById('rvTracked').textContent = hazards.size;
+
+  const fecOn = ctrl.fec_enabled !== false;
+  const fecBtn = document.getElementById('fecToggleBtn');
+  const fecBadge = document.getElementById('fecBadge');
+  if(fecOn){
+    fecBtn.textContent = 'FEC: ON';
+    fecBtn.classList.add('active');
+    fecBtn.classList.remove('warn');
+    fecBadge.textContent = 'ON';
+    fecBadge.className = 'badge';
+  } else {
+    fecBtn.textContent = 'FEC: OFF';
+    fecBtn.classList.remove('active');
+    fecBtn.classList.add('warn');
+    fecBadge.textContent = 'OFF — unprotected';
+    fecBadge.className = 'badge badge-warn';
+  }
+
+  const fovOn = ctrl.fov_360 !== false;
+  const fovBtn = document.getElementById('fov360Btn');
+  const fovActive = document.getElementById('fovActive');
+  if(fovBtn && fovActive){
+    if(fovOn){
+      fovBtn.textContent = '360° SWEEP: ON';
+      fovBtn.classList.add('active');
+      fovActive.textContent = '360° (6 sectors)';
+      fovActive.style.color = 'var(--accent)';
+    } else {
+      fovBtn.textContent = '360° SWEEP: OFF';
+      fovBtn.classList.remove('active');
+      fovActive.textContent = 'FORWARD ONLY (1 sector)';
+      fovActive.style.color = 'var(--yellow)';
+    }
+  }
+}
+
+// ── Hazard list ──
+function renderHazardList(){
+  document.getElementById('hazardCount').textContent = hazards.size;
+  const list = document.getElementById('hazardList');
+  const now = Date.now();
+  const rows = [...hazards.entries()].sort((a, b) => b[1].lastSeen - a[1].lastSeen);
+  if(rows.length === 0){
+    list.innerHTML = '<div style="color:var(--muted);font-size:10px;padding:4px 0;">no hazards detected yet</div>';
+    return;
+  }
+  list.innerHTML = rows.slice(0, 25).map(([id, hz]) => {
+    const age = ((now - hz.lastSeen) / 1000).toFixed(1);
+    const stale = (now - hz.lastSeen) > STALE_MS;
+    const col = colorForKind(hz.kind);
+    return `<div class="hz">
+      <span class="hzL"><span class="hdot" style="background:${stale ? '#555' : 'rgb('+col+')'}"></span>#${id} ${hz.kind}</span>
+      <span class="hzR">(${hz.x.toFixed(1)},${hz.y.toFixed(1)}) ${(hz.confidence*100).toFixed(0)}% ${age}s</span>
+    </div>`;
+  }).join('');
+}
+setInterval(renderHazardList, 500);
+
+// ── Slider controls ──
+function updateSliderLabels(){
+  document.getElementById('lossVal').textContent = document.getElementById('lossSlider').value + '%';
+  document.getElementById('latVal').textContent = document.getElementById('latSlider').value + ' ms';
+  document.getElementById('bwVal').textContent = document.getElementById('bwSlider').value + ' B/s';
+  document.getElementById('jitVal').textContent = document.getElementById('jitSlider').value + ' ms';
+}
+['lossSlider','latSlider','bwSlider','jitSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    sliderTouched = true;
+    updateSliderLabels();
+    // Clear active preset
+    document.querySelectorAll('.preset').forEach(p => p.classList.remove('active'));
+  });
+});
+updateSliderLabels();
+
+// Speed slider
+document.getElementById('speedSlider').addEventListener('input', function(){
+  const val = (this.value / 100).toFixed(2);
+  document.getElementById('speedVal').textContent = val + ' m/f';
+  // Apply immediately
+  fetch('/api/pipeline_control', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({speed: parseFloat(val)})
+  }).catch(()=>{});
+});
+
+// ── Scenario presets ──
+const PRESETS = {
+  nominal: {loss_rate:0.15, latency_ms:150, jitter_ms:60, bandwidth_bps:2000},
+  degraded: {loss_rate:0.35, latency_ms:400, jitter_ms:120, bandwidth_bps:1200},
+  storm: {loss_rate:0.60, latency_ms:800, jitter_ms:300, bandwidth_bps:600},
+  crater: {loss_rate:0.25, latency_ms:1200, jitter_ms:200, bandwidth_bps:800},
+  catastrophic: {loss_rate:0.90, latency_ms:1800, jitter_ms:500, bandwidth_bps:300},
+};
+function applyPreset(name){
+  const p = PRESETS[name];
+  if(!p) return;
+  document.getElementById('lossSlider').value = Math.round(p.loss_rate * 100);
+  document.getElementById('latSlider').value = p.latency_ms;
+  document.getElementById('bwSlider').value = p.bandwidth_bps;
+  document.getElementById('jitSlider').value = p.jitter_ms;
+  updateSliderLabels();
+  sliderTouched = true;
+  // Highlight active preset
+  document.querySelectorAll('.preset').forEach(el => el.classList.remove('active'));
+  document.getElementById('pre-' + name).classList.add('active');
+  // Auto-apply
+  applyLinkConfig();
+}
+
+// ── Apply link config ──
+async function applyLinkConfig(){
+  const btn = document.getElementById('applyBtn');
+  const body = {
+    loss_rate: document.getElementById('lossSlider').value / 100,
+    latency_ms: parseFloat(document.getElementById('latSlider').value),
+    jitter_ms: parseFloat(document.getElementById('jitSlider').value),
+    bandwidth_bps: parseFloat(document.getElementById('bwSlider').value),
+  };
+  try {
+    await fetch('/api/link_config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    btn.textContent = '✓ APPLIED'; btn.classList.add('applied');
+    sliderTouched = false;
+    setTimeout(() => { btn.textContent = 'APPLY TO LIVE LINK'; btn.classList.remove('applied'); }, 1200);
+  } catch(e){
+    btn.textContent = '✗ FAILED';
+    setTimeout(() => { btn.textContent = 'APPLY TO LIVE LINK'; }, 1200);
+  }
+}
+
+// ── Pipeline controls ──
+async function togglePause(){
+  const nowPaused = pipelineControl.paused;
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({paused: !nowPaused})
+    });
+  } catch(e){}
+}
+
+async function toggleFec(){
+  const nowOn = pipelineControl.fec_enabled !== false;
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({fec_enabled: !nowOn})
+    });
+  } catch(e){}
+}
+
+async function toggleFov360(){
+  const nowOn = pipelineControl.fov_360 !== false;
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({fov_360: !nowOn})
+    });
+  } catch(e){}
+}
+
+async function resetPipeline(){
+  roverTrail = [];
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({reset_requested: true})
+    });
+  } catch(e){}
+}
+
+async function setDetector(mode){
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({detector: mode})
+    });
+    pipelineControl.detector = mode;
+    syncDetectorUI();
+  } catch(e){}
+}
+function syncDetectorUI(){
+  const want = pipelineControl.detector || 'depth', act = pipelineControl.detector_active || want;
+  document.querySelectorAll('.det-btn').forEach(b => b.classList.toggle('active', b.dataset.det === want));
+  const el = document.getElementById('detActive');
+  if(el){
+    el.textContent = act.toUpperCase() + (act !== want ? ' (YOLO unavailable)' : '');
+    el.style.color = act !== want ? 'var(--yellow)' : 'var(--accent)';
+  }
+}
+setInterval(syncDetectorUI, 700);
+
+async function toggleFlare(){
+  const nowFlare = pipelineControl.flare === true;
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({flare: !nowFlare})
+    });
+    
+    // Quick UI feedback
+    const btn = document.getElementById('flareBtn');
+    if(!nowFlare) {
+      btn.style.background = 'var(--warning-dim)';
+      btn.textContent = '⚡ SOLAR FLARE ACTIVE (CLICK TO CLEAR)';
+    } else {
+      btn.style.background = 'transparent';
+      btn.innerHTML = '<span style="font-size:12px">⚡</span> SIMULATE SOLAR FLARE (RAD STRIKE)';
+    }
+  } catch(e){}
+}
+
+// ── Trace log ──
+async function pollTrace(){
+  try {
+    const res = await fetch('/api/trace?limit=20');
+    const rows = await res.json();
+    const el = document.getElementById('trace');
+    el.innerHTML = rows.map(r => {
+      let cls = '';
+      if(r.stage.includes('detected')) cls = 'st-det';
+      else if(r.stage.includes('localized')) cls = 'st-loc';
+      else if(r.stage.includes('transmitted')) cls = 'st-tx';
+      else if(r.stage.includes('decoded')) cls = 'st-dec';
+      else if(r.stage.includes('fec')) cls = 'st-fec';
+      return `<span class="${cls}">hz#${r.hazard_id} ${r.stage}</span>${r.detail ? ' — '+r.detail : ''}`;
+    }).join('\n') || 'awaiting telemetry data...';
+    el.scrollTop = el.scrollHeight;
+  } catch(e){}
+}
+setInterval(pollTrace, 1200);
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT') return;
+  if(e.key === ' ' || e.key === 'p'){ e.preventDefault(); togglePause(); }
+  if(e.key === 'r'){ resetPipeline(); }
+  if(e.key === '1') applyPreset('nominal');
+  if(e.key === '2') applyPreset('degraded');
+  if(e.key === '3') applyPreset('storm');
+  if(e.key === '4') applyPreset('crater');
+  if(e.key === '5') applyPreset('catastrophic');
+  if(e.key === 's') toggleSfx();
+  if(e.key === 'f') toggleFollow();
+  if(e.key === '+' || e.key === '=') zoomBy(1.3);
+  if(e.key === '-' || e.key === '_') zoomBy(1/1.3);
+});
+async function requestAiAdvice() {
+  const btn = document.getElementById('btnRequestAi');
+  const adviceEl = document.getElementById('aiAdvice');
+  const statusEl = document.getElementById('aiStatus');
+  
+  if(btn) {
+    btn.disabled = true;
+    btn.textContent = "Analyzing...";
+  }
+  if(statusEl) {
+    statusEl.textContent = "THINKING";
+    statusEl.className = "badge badge-warn";
+  }
+  
+  try {
+    const res = await fetch('/api/ai_advice');
+    const data = await res.json();
+    if(adviceEl) adviceEl.textContent = `"${data.advice}"`;
+    if(statusEl) {
+      statusEl.textContent = "READY";
+      statusEl.className = "badge badge-ok";
+    }
+  } catch (err) {
+    if(adviceEl) adviceEl.textContent = "AI connection failed.";
+    if(statusEl) {
+      statusEl.textContent = "OFFLINE";
+      statusEl.className = "badge badge-bad";
+    }
+  } finally {
+    if(btn) {
+      btn.disabled = false;
+      btn.textContent = "Request Assessment";
+    }
+  }
+}
+
+
+// ── Top-bar KPI tiles (mirror live values from the panels) ──
+function setKpi(id, val, pct, state){
+  const el = document.getElementById(id); if(el) el.textContent = val;
+  const bar = document.getElementById(id + 'Bar'); if(bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  const box = el && el.closest('.kpi');
+  if(box && state !== undefined){ box.classList.toggle('warn', state === 1); box.classList.toggle('bad', state === 2); }
+}
+setInterval(() => {
+  const sr = (linkStats.survival_rate || 0) * 100;
+  setKpi('kpiSurv', sr.toFixed(1), sr, sr > 80 ? 0 : sr > 50 ? 1 : 2);
+  const lat = Math.round(linkConfig.latency_ms || 0);
+  setKpi('kpiLat', lat, lat / 20, lat > 1000 ? 2 : lat > 500 ? 1 : 0);
+  const loss = Math.round((linkConfig.loss_rate || 0) * 100);
+  setKpi('kpiLoss', loss, loss, loss > 50 ? 2 : loss > 25 ? 1 : 0);
+  setKpi('kpiHaz', hazards.size, hazards.size * 5);
+  const fec = (pipelineStats && pipelineStats.fec_recoveries) || 0;
+  setKpi('kpiFec', fec, Math.min(100, fec * 2));
+}, 400);
+
+
+// ══════════════════════════════════════════════════════════════
+//  ORBITAL VIEW — lunar globe, proximity radar, live AI insights
+// ══════════════════════════════════════════════════════════════
+let currentView = 'mission';
+function setView(v){
+  currentView = v;
+  document.getElementById('app').setAttribute('data-view', v);
+  document.querySelectorAll('.vtab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+  window.dispatchEvent(new Event('resize'));
+}
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT') return;
+  if(e.key === 'v'){
+    const order = ['mission', 'orbital', 'security'];
+    setView(order[(order.indexOf(currentView) + 1) % order.length]);
+  }
+});
+
+const oc = document.getElementById('orbGlobe'), ocx = oc.getContext('2d');
+const rc = document.getElementById('orbRadar'), rcx = rc.getContext('2d');
+const sc = document.getElementById('secRing'), scx = sc.getContext('2d');
+const pc = document.getElementById('secPulse'), pcx = pc.getContext('2d');
+function orbResize(){
+  const d = devicePixelRatio || 1;
+  oc.width = oc.clientWidth * d; oc.height = oc.clientHeight * d;
+  rc.width = rc.clientWidth * d; rc.height = rc.clientHeight * d;
+  sc.width = sc.clientWidth * d; sc.height = sc.clientHeight * d;
+  pc.width = pc.clientWidth * d; pc.height = pc.clientHeight * d;
+}
+window.addEventListener('resize', orbResize);
+orbResize();
+
+// Surface sample points (pseudo-terrain: bright = highlands, sparse = maria)
+const ORB_PTS = [];
+(function(){
+  const terr = (la, lo) => (Math.sin(la*3.1+1.3)*Math.cos(lo*1.9) + 0.7*Math.sin(lo*4.3+la*1.7) + 0.6*Math.sin(la*1.1-lo*0.8) + 2.3) / 4.6;
+  for(let la = -84; la <= 84; la += 3){
+    const step = 3 / Math.max(0.2, Math.cos(la*Math.PI/180));
+    for(let lo = 0; lo < 360; lo += step){
+      const v = terr(la*Math.PI/180, lo*Math.PI/180);
+      if(v > 0.34) ORB_PTS.push({la: la*Math.PI/180, lo: lo*Math.PI/180, v});
+    }
+  }
+})();
+const ORB_STARS = Array.from({length: 120}, () => ({x: Math.random(), y: Math.random(), r: Math.random()*1.2 + 0.2, a: Math.random()*0.6 + 0.2}));
+
+let orbT = 0, orbLock = true, orbSpin = 0;
+const ORB_TILT = 0.38, DEG_PER_M = 0.035;   // radians of lat/lon per metre
+
+function oProj(lat, lon, rot){
+  const l = lon - rot;
+  const x = Math.cos(lat)*Math.sin(l), y = Math.sin(lat), z = Math.cos(lat)*Math.cos(l);
+  return [x, y*Math.cos(ORB_TILT) - z*Math.sin(ORB_TILT), y*Math.sin(ORB_TILT) + z*Math.cos(ORB_TILT)];
+}
+
+function orbToggleSpin(){
+  orbLock = !orbLock;
+  document.getElementById('orbMode').textContent = orbLock ? 'LOCKED ON SITE' : 'FREE ROTATION';
+  document.getElementById('orbExplore').textContent = orbLock ? 'Explore' : 'Lock on site';
+}
+
+function drawGlobe(){
+  const W = oc.width, H = oc.height, d = devicePixelRatio || 1;
+  ocx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H*0.47, R = Math.min(W, H*1.05)*0.36;
+
+  ORB_STARS.forEach(s => { ocx.fillStyle = `rgba(200,240,240,${s.a})`; ocx.fillRect(s.x*W, s.y*H, s.r*d, s.r*d); });
+
+  let g = ocx.createRadialGradient(cx, cy, R*0.9, cx, cy, R*1.4);
+  g.addColorStop(0, 'rgba(46,230,214,0.30)'); g.addColorStop(1, 'rgba(46,230,214,0)');
+  ocx.fillStyle = g; ocx.beginPath(); ocx.arc(cx, cy, R*1.4, 0, 7); ocx.fill();
+
+  g = ocx.createRadialGradient(cx - R*0.35, cy - R*0.4, R*0.1, cx, cy, R);
+  g.addColorStop(0, '#0f3d4d'); g.addColorStop(1, '#02101a');
+  ocx.fillStyle = g; ocx.beginPath(); ocx.arc(cx, cy, R, 0, 7); ocx.fill();
+  ocx.strokeStyle = 'rgba(46,230,214,0.55)'; ocx.lineWidth = 1.5*d; ocx.stroke();
+
+  orbSpin += 0.0035;
+  const rot = orbLock ? Math.sin(orbT*0.25)*0.55 : orbSpin;
+
+  // surface dots
+  for(const p of ORB_PTS){
+    const [x, y, z] = oProj(p.la, p.lo, rot);
+    if(z < 0.03) continue;
+    ocx.fillStyle = `rgba(90,235,225,${0.12 + 0.62*p.v*z})`;
+    const s = (0.8 + 1.3*z)*d;
+    ocx.fillRect(cx + x*R, cy - y*R, s, s);
+  }
+
+  // graticule
+  ocx.strokeStyle = 'rgba(46,230,214,0.16)'; ocx.lineWidth = d;
+  const line = (pts) => {
+    ocx.beginPath(); let pen = false;
+    for(const [la, lo] of pts){
+      const [x, y, z] = oProj(la, lo, rot);
+      if(z > 0){ const X = cx + x*R, Y = cy - y*R; pen ? ocx.lineTo(X, Y) : ocx.moveTo(X, Y); pen = true; } else pen = false;
+    }
+    ocx.stroke();
+  };
+  for(let lo = 0; lo < 360; lo += 30){ const a = []; for(let la = -90; la <= 90; la += 5) a.push([la*Math.PI/180, lo*Math.PI/180]); line(a); }
+  for(let la = -60; la <= 60; la += 30){ const a = []; for(let lo = 0; lo <= 360; lo += 5) a.push([la*Math.PI/180, lo*Math.PI/180]); line(a); }
+
+  // orbit ring + relay satellite
+  ocx.save(); ocx.translate(cx, cy); ocx.rotate(-0.32);
+  ocx.strokeStyle = 'rgba(46,230,214,0.35)'; ocx.setLineDash([6*d, 6*d]); ocx.lineWidth = d;
+  ocx.beginPath(); ocx.ellipse(0, 0, R*1.32, R*0.42, 0, 0, 7); ocx.stroke(); ocx.setLineDash([]);
+  const ang = orbT*0.5, sx = Math.cos(ang)*R*1.32, sy = Math.sin(ang)*R*0.42;
+  ocx.fillStyle = '#f0ffff'; ocx.shadowColor = '#2ee6d6'; ocx.shadowBlur = 12*d;
+  ocx.fillRect(sx - 3*d, sy - 3*d, 6*d, 6*d); ocx.shadowBlur = 0;
+  ocx.font = `${9*d}px IBM Plex Mono, monospace`; ocx.fillStyle = 'rgba(205,238,238,.8)';
+  ocx.fillText('RELAY', sx + 8*d, sy + 3*d);
+  ocx.restore();
+
+  // rover trail
+  if(roverTrail.length > 1){
+    ocx.strokeStyle = 'rgba(240,255,255,0.45)'; ocx.lineWidth = 1.2*d; ocx.beginPath(); let pen = false;
+    for(const t of roverTrail){
+      const [x, y, z] = oProj(t.y*DEG_PER_M, t.x*DEG_PER_M, rot);
+      if(z > 0){ pen ? ocx.lineTo(cx + x*R, cy - y*R) : ocx.moveTo(cx + x*R, cy - y*R); pen = true; } else pen = false;
+    }
+    ocx.stroke();
+  }
+
+  // hazards
+  const now = Date.now();
+  hazards.forEach((hz, id) => {
+    const [x, y, z] = oProj(hz.y*DEG_PER_M, hz.x*DEG_PER_M, rot);
+    if(z < 0.05) return;
+    const stale = now - hz.lastSeen > STALE_MS;
+    const col = stale ? '120,130,145' : colorForKind(hz.kind);
+    const X = cx + x*R, Y = cy - y*R, r = (3 + 2.5*z)*d;
+    ocx.fillStyle = `rgba(${col},0.95)`; ocx.beginPath(); ocx.arc(X, Y, r, 0, 7); ocx.fill();
+    ocx.strokeStyle = `rgba(${col},${0.35 + 0.3*Math.sin(orbT*3 + id)})`; ocx.lineWidth = d;
+    ocx.beginPath(); ocx.arc(X, Y, r + 4*d + 2*d*Math.sin(orbT*2 + id), 0, 7); ocx.stroke();
+  });
+
+  // rover marker
+  {
+    const [x, y, z] = oProj(roverInfo.y*DEG_PER_M, roverInfo.x*DEG_PER_M, rot);
+    if(z > 0.05){
+      const X = cx + x*R, Y = cy - y*R, pr = 8*d + 5*d*((orbT*1.5) % 1);
+      ocx.strokeStyle = `rgba(240,255,255,${1 - (orbT*1.5) % 1})`; ocx.lineWidth = 1.5*d;
+      ocx.beginPath(); ocx.arc(X, Y, pr, 0, 7); ocx.stroke();
+      ocx.fillStyle = '#f0ffff'; ocx.shadowColor = '#2ee6d6'; ocx.shadowBlur = 14*d;
+      ocx.beginPath(); ocx.arc(X, Y, 4*d, 0, 7); ocx.fill(); ocx.shadowBlur = 0;
+      ocx.font = `bold ${10*d}px Rajdhani, sans-serif`; ocx.fillStyle = '#f0ffff';
+      ocx.fillText('ROVER-01', X + 10*d, Y - 8*d);
+    }
+  }
+}
+
+function drawRadar(){
+  const W = rc.width, H = rc.height, d = devicePixelRatio || 1;
+  rcx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H*0.54, R = Math.min(W, H)*0.40, RANGE = 12;
+  rcx.strokeStyle = 'rgba(46,230,214,0.28)'; rcx.lineWidth = d;
+  for(let i = 1; i <= 4; i++){ rcx.beginPath(); rcx.arc(cx, cy, R*i/4, 0, 7); rcx.stroke(); }
+  rcx.beginPath(); rcx.moveTo(cx - R, cy); rcx.lineTo(cx + R, cy); rcx.moveTo(cx, cy - R); rcx.lineTo(cx, cy + R); rcx.stroke();
+
+  const sw = orbT*1.4;
+  for(let i = 0; i < 28; i++){
+    const a = sw - i*0.035;
+    rcx.strokeStyle = `rgba(46,230,214,${0.5*(1 - i/28)})`; rcx.lineWidth = 2*d;
+    rcx.beginPath(); rcx.moveTo(cx, cy); rcx.lineTo(cx + Math.cos(a)*R, cy + Math.sin(a)*R); rcx.stroke();
+  }
+
+  // hazards relative to rover, rotated into rover heading frame (forward = up)
+  const hdg = (roverInfo.heading || 0)*Math.PI/180;
+  hazards.forEach(hz => {
+    const dx = hz.x - roverInfo.x, dy = hz.y - roverInfo.y;
+    const dist = Math.hypot(dx, dy); if(dist > RANGE) return;
+    const a = Math.atan2(dy, dx) - hdg + Math.PI/2;
+    const X = cx + Math.cos(a)*dist/RANGE*R, Y = cy - Math.sin(a)*dist/RANGE*R;
+    rcx.fillStyle = `rgba(${colorForKind(hz.kind)},0.95)`;
+    rcx.shadowColor = `rgb(${colorForKind(hz.kind)})`; rcx.shadowBlur = 8*d;
+    rcx.beginPath(); rcx.arc(X, Y, 3.2*d, 0, 7); rcx.fill(); rcx.shadowBlur = 0;
+  });
+  rcx.fillStyle = '#f0ffff'; rcx.beginPath(); rcx.moveTo(cx, cy - 7*d); rcx.lineTo(cx + 5*d, cy + 5*d); rcx.lineTo(cx - 5*d, cy + 5*d); rcx.closePath(); rcx.fill();
+}
+
+function orbLoop(){
+  requestAnimationFrame(orbLoop);
+  if(currentView !== 'orbital' || !oc.width) return;
+  orbT += 0.016;
+  drawGlobe(); drawRadar();
+}
+orbLoop();
+
+// ── Live panels ──
+let orbTrace = [];
+async function orbPollTrace(){
+  if(currentView !== 'orbital') return;
+  try { orbTrace = await (await fetch('/api/trace?limit=6')).json(); } catch(e){}
+}
+setInterval(orbPollTrace, 1500);
+
+function orbUpdate(){
+  if(currentView !== 'orbital') return;
+  const sr = (linkStats.survival_rate || 0)*100, loss = Math.round((linkConfig.loss_rate || 0)*100), lat = Math.round(linkConfig.latency_ms || 0);
+  const fecOn = pipelineControl.fec_enabled !== false;
+
+  // detail card
+  document.getElementById('oPos').innerHTML = `${roverInfo.x.toFixed(1)}, ${roverInfo.y.toFixed(1)}<small>m</small>`;
+  document.getElementById('oHdg').innerHTML = `${roverInfo.heading.toFixed(0)}<small>&deg;</small>`;
+  document.getElementById('oSpd').innerHTML = `${(pipelineControl.speed || 0.15).toFixed(2)}<small>m/f</small>`;
+  document.getElementById('oDet').textContent = (pipelineStats.total_detections || 0);
+  document.getElementById('oSurv').innerHTML = `${sr.toFixed(0)}<small>%</small>`;
+  document.getElementById('oMode').textContent = pipelineControl.paused ? 'PAUSED' : (pipelineControl.flare ? 'RAD STRIKE' : 'TRAVERSE');
+  const st = document.getElementById('orbRoverState');
+  st.textContent = pipelineControl.paused ? 'PAUSED' : 'ACTIVE';
+  st.className = 'badge ' + (pipelineControl.paused ? 'badge-warn' : 'badge-ok');
+
+  // prediction
+  const pT = document.getElementById('insPredTitle'), pC = document.getElementById('insPredChip');
+  let lvl = sr > 80 ? 0 : sr > 50 ? 1 : 2;
+  pT.textContent = ['Link stable', 'Link degrading', 'Link critical'][lvl];
+  document.getElementById('insPredText').textContent = `${loss}% configured loss, ${lat} ms latency, ${sr.toFixed(0)}% of packets surviving. FEC is ${fecOn ? 'recovering single-packet losses' : 'OFF — losses are unrecoverable'}.`;
+  pC.className = 'chip ' + ['ok', '', 'bad'][lvl];
+  pC.innerHTML = '&#9679; ' + (fecOn ? 'FEC protected' : 'unprotected');
+
+  // expiry
+  const now = Date.now(); let stale = 0, low = 0;
+  hazards.forEach(h => { if(now - h.lastSeen > STALE_MS) stale++; if(h.confidence < 0.6) low++; });
+  document.getElementById('insExpTitle').textContent = `${stale} stale hazard${stale === 1 ? '' : 's'}`;
+  document.getElementById('insExpText').textContent = `${hazards.size} tracked, ${low} below 60% confidence. Stale markers fade from the map unless re-observed.`;
+  const eC = document.getElementById('insExpChip');
+  eC.className = 'chip ' + (stale === 0 ? 'ok' : stale > 3 ? 'bad' : '');
+  eC.innerHTML = '&#9679; ' + (stale === 0 ? 'map fresh' : 're-observe soon');
+
+  // categories
+  let cr = 0, rk = 0, hi = 0;
+  hazards.forEach(h => { h.kind === 'rock' ? rk++ : cr++; if(h.confidence >= 0.8) hi++; });
+  const rows = [['Craters', cr], ['Rocks', rk], ['High confidence', hi], ['Stale', stale], ['FEC recoveries', pipelineStats.fec_recoveries || 0]];
+  const mx = Math.max(1, ...rows.map(r => r[1]));
+  document.getElementById('orbCatTotal').textContent = hazards.size;
+  document.getElementById('orbCats').innerHTML = rows.map(([n, v]) =>
+    `<div class="cat"><span>${n}</span><span class="bar"><b style="width:${(v/mx*100).toFixed(0)}%"></b></span><span class="n">${v}</span></div>`).join('');
+
+  // events
+  const ev = document.getElementById('orbEvents');
+  const last = orbTrace.slice(-3).reverse();
+  ev.innerHTML = last.length ? last.map(r =>
+    `<div class="ev"><span class="d">hz#${r.hazard_id}</span><div class="n">${r.stage}</div><div class="s">${r.detail || '—'}</div></div>`).join('')
+    : '<div class="hint">awaiting pipeline events...</div>';
+}
+setInterval(orbUpdate, 500);
+
+async function orbAsk(){
+  const badge = document.getElementById('orbAiBadge'), chip = document.getElementById('insRecChip');
+  const txt = document.getElementById('insRecText');
+  chip.className = 'chip'; chip.innerHTML = '&#9679; analysing...'; badge.textContent = 'THINKING';
+  try {
+    const data = await (await fetch('/api/ai_advice')).json();
+    txt.textContent = data.advice; chip.className = 'chip ok'; chip.innerHTML = '&#9679; assessment ready'; badge.textContent = 'READY';
+    const main = document.getElementById('aiAdvice'); if(main) main.textContent = `"${data.advice}"`;
+  } catch(e){
+    txt.textContent = 'AI connection failed.'; chip.className = 'chip bad'; chip.innerHTML = '&#9679; offline'; badge.textContent = 'OFFLINE';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SECURITY VIEW — AEAD authentication ring, throughput pulse,
+//  live crypto parameters and auth events
+// ══════════════════════════════════════════════════════════════
+let secT = 0;
+let secPulseHistory = []; // recent {t, encrypted, ok, fail} snapshots for the sparkline
+const MAX_SEC_PULSE = 40;
+let secLastEnc = 0, secLastOk = 0, secLastFail = 0;
+
+// Authoritative, locally-tracked events for the demo attack button. The raw
+// trace log is dominated by a routine "authenticated" line on EVERY packet
+// (tens per second with the 360-degree sweep running), so the one attack
+// event can easily scroll out of a small /api/trace window before the next
+// poll even sees it -- these are pinned client-side instead, driven directly
+// off the pipeline_stats deltas we already track, so the proof is never lost.
+let secLocalEvents = []; // {label, stage, detail, ts}
+const MAX_SEC_LOCAL_EVENTS = 4;
+function secPushLocalEvent(label, stage, detail){
+  secLocalEvents.unshift({label, stage, detail, ts: Date.now()});
+  if(secLocalEvents.length > MAX_SEC_LOCAL_EVENTS) secLocalEvents.pop();
+}
+
+function drawRing(){
+  const d = devicePixelRatio || 1, w = sc.width, h = sc.height;
+  scx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.32;
+
+  const enc = pipelineStats.packets_encrypted || 0;
+  const ok = pipelineStats.packets_auth_ok || 0;
+  const fail = pipelineStats.packets_auth_failed || 0;
+  const total = ok + fail;
+  const rate = total > 0 ? ok / total : 1.0;
+
+  // background track
+  scx.lineWidth = 14 * d;
+  scx.strokeStyle = 'rgba(255,255,255,.08)';
+  scx.beginPath(); scx.arc(cx, cy, R, 0, Math.PI * 2); scx.stroke();
+
+  // animated rotating sweep (purely decorative "live scanning" feel)
+  const sweep = secT * 0.6;
+  const grad = scx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+  grad.addColorStop(0, 'rgba(61,220,151,.05)');
+  grad.addColorStop(0.5, 'rgba(61,220,151,.9)');
+  grad.addColorStop(1, 'rgba(61,220,151,.05)');
+  scx.save();
+  scx.translate(cx, cy); scx.rotate(sweep); scx.translate(-cx, -cy);
+  scx.lineWidth = 14 * d;
+  scx.strokeStyle = grad;
+  scx.lineCap = 'round';
+  scx.beginPath(); scx.arc(cx, cy, R, 0, Math.PI * 0.4); scx.stroke();
+  scx.restore();
+
+  // the real data arc: auth-ok fraction of the ring, red remainder if any failures
+  const startA = -Math.PI / 2;
+  scx.lineWidth = 14 * d;
+  scx.lineCap = 'round';
+  scx.strokeStyle = fail > 0 ? '#ff5d6c' : '#3ddc97';
+  scx.shadowBlur = 16 * d;
+  scx.shadowColor = fail > 0 ? 'rgba(255,93,108,.6)' : 'rgba(61,220,151,.6)';
+  scx.beginPath();
+  scx.arc(cx, cy, R, startA, startA + Math.PI * 2 * rate);
+  scx.stroke();
+  scx.shadowBlur = 0;
+
+  // tick marks
+  scx.strokeStyle = 'rgba(255,255,255,.15)';
+  scx.lineWidth = 1.5 * d;
+  for(let i = 0; i < 40; i++){
+    const a = (i / 40) * Math.PI * 2;
+    const r1 = R + 10 * d, r2 = R + (i % 5 === 0 ? 17 : 13) * d;
+    scx.beginPath();
+    scx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    scx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+    scx.stroke();
+  }
+
+  document.getElementById('secRingPct').textContent = (rate * 100).toFixed(rate < 1 ? 1 : 0) + '%';
+  document.getElementById('secRingPct').style.color = fail > 0 ? '#ff5d6c' : '#eaffff';
+}
+
+function drawPulse(){
+  const d = devicePixelRatio || 1, w = pc.width, h = pc.height;
+  pcx.clearRect(0, 0, w, h);
+  if(secPulseHistory.length < 2) return;
+
+  const mx = Math.max(1, ...secPulseHistory.map(p => p.ok));
+  const n = secPulseHistory.length;
+  const padL = 10 * d, padR = 10 * d, padT = 30 * d, padB = 22 * d;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+
+  // filled area under the auth-ok line
+  pcx.beginPath();
+  secPulseHistory.forEach((p, i) => {
+    const x = padL + (i / (n - 1)) * plotW;
+    const y = padT + plotH - (p.ok / mx) * plotH;
+    i === 0 ? pcx.moveTo(x, y) : pcx.lineTo(x, y);
+  });
+  pcx.lineTo(padL + plotW, padT + plotH);
+  pcx.lineTo(padL, padT + plotH);
+  pcx.closePath();
+  const grad = pcx.createLinearGradient(0, padT, 0, padT + plotH);
+  grad.addColorStop(0, 'rgba(61,220,151,.45)');
+  grad.addColorStop(1, 'rgba(61,220,151,0)');
+  pcx.fillStyle = grad;
+  pcx.fill();
+
+  // line
+  pcx.beginPath();
+  secPulseHistory.forEach((p, i) => {
+    const x = padL + (i / (n - 1)) * plotW;
+    const y = padT + plotH - (p.ok / mx) * plotH;
+    i === 0 ? pcx.moveTo(x, y) : pcx.lineTo(x, y);
+  });
+  pcx.strokeStyle = '#3ddc97';
+  pcx.lineWidth = 2 * d;
+  pcx.lineJoin = 'round';
+  pcx.stroke();
+
+  // failure markers, if any
+  secPulseHistory.forEach((p, i) => {
+    if(p.fail <= 0) return;
+    const x = padL + (i / (n - 1)) * plotW;
+    const y = padT + plotH - (p.ok / mx) * plotH;
+    pcx.beginPath();
+    pcx.arc(x, y, 3.5 * d, 0, Math.PI * 2);
+    pcx.fillStyle = '#ff5d6c';
+    pcx.fill();
+  });
+}
+
+function secLoop(){
+  requestAnimationFrame(secLoop);
+  if(currentView !== 'security' || !sc.width) return;
+  secT += 0.016;
+  drawRing(); drawPulse();
+}
+secLoop();
+
+let secTrace = [];
+async function secPollTrace(){
+  if(currentView !== 'security') return;
+  try { secTrace = await (await fetch('/api/trace?limit=12')).json(); } catch(e){}
+}
+setInterval(secPollTrace, 1200);
+
+function secUpdate(){
+  if(currentView !== 'security') return;
+  const ps = pipelineStats;
+  const enc = ps.packets_encrypted || 0, ok = ps.packets_auth_ok || 0, fail = ps.packets_auth_failed || 0;
+
+  document.getElementById('secRightEnc').textContent = enc;
+  document.getElementById('secRightOk').textContent = ok;
+
+  const guarChip = document.getElementById('secGuaranteeChip');
+  guarChip.className = 'chip ' + (fail > 0 ? 'bad' : 'ok');
+  guarChip.innerHTML = '&#9679; ' + fail + ' rejected this run';
+
+  const viewBadge = document.getElementById('secViewBadge');
+  viewBadge.className = 'badge ' + (fail > 0 ? 'badge-warn' : 'badge-ok');
+  viewBadge.textContent = fail > 0 ? 'TAMPER DETECTED' : 'AEAD ACTIVE';
+
+  const postureBadge = document.getElementById('secPostureBadge');
+  postureBadge.className = 'badge ' + (fail > 0 ? 'badge-warn' : 'badge-ok');
+  postureBadge.textContent = fail > 0 ? 'ANOMALY' : 'NOMINAL';
+
+  // throughput, from the delta since last tick (this function runs every 500ms)
+  const dEnc = Math.max(0, enc - secLastEnc), dOk = Math.max(0, ok - secLastOk), dFail = Math.max(0, fail - secLastFail);
+  secLastEnc = enc; secLastOk = ok; secLastFail = fail;
+  document.getElementById('secPulseRate').textContent = (dOk * 2) + ' pkt/s'; // tick is 500ms -> x2 for per-second
+
+  if(dFail > 0){
+    secPushLocalEvent('REJECTED', 'auth_failed', 'tampered packet failed Poly1305 authentication and was dropped before the decoder');
+  }
+
+  secPulseHistory.push({t: Date.now(), ok: dOk, fail: dFail});
+  if(secPulseHistory.length > MAX_SEC_PULSE) secPulseHistory.shift();
+
+  const tampered = ps.packets_tampered_injected || 0;
+  document.getElementById('secTampered').textContent = tampered;
+
+  // posture breakdown bars, reusing the .cat component from Orbital View
+  const rows = [
+    ['Encrypted', enc],
+    ['Authenticated', ok],
+    ['Rejected', fail],
+    ['FEC recoveries', ps.fec_recoveries || 0],
+    ['Link survival %', Math.round((linkStats.survival_rate || 0) * 100)],
+  ];
+  const mx = Math.max(1, ...rows.map(r => r[1]));
+  document.getElementById('secPosture').innerHTML = rows.map(([n, v]) =>
+    `<div class="cat"><span>${n}</span><span class="bar"><b style="width:${(v/mx*100).toFixed(0)}%;${n==='Rejected'&&v>0?'background:#ff5d6c':''}"></b></span><span class="n">${v}</span></div>`).join('');
+
+  // events — the pinned local attack/rejection events always come first
+  // (guaranteed visible, see secPushLocalEvent above), topped up with
+  // whatever recent security-relevant trace entries still fit.
+  const relevant = secTrace.filter(r => ['authenticated', 'auth_failed', 'tampered_injected', 'transmitted', 'fec_reconstructed'].includes(r.stage));
+  const traceSlots = Math.max(0, 4 - secLocalEvents.length);
+  const traceEvents = relevant.slice(-traceSlots).reverse().map(r => {
+    const isFail = r.stage === 'auth_failed';
+    const isOk = r.stage === 'authenticated';
+    const isAttack = r.stage === 'tampered_injected';
+    return {
+      label: isFail ? 'REJECTED' : isOk ? 'VERIFIED' : isAttack ? 'ATTACK' : 'hz#' + r.hazard_id,
+      stage: r.stage, detail: r.detail, isFail: isFail || isAttack, isOk,
+    };
+  });
+  const localAsEv = secLocalEvents.map(e => ({
+    label: e.label, stage: e.stage, detail: e.detail, isFail: e.label !== 'VERIFIED', isOk: false,
+  }));
+  const combined = [...localAsEv, ...traceEvents].slice(0, 4);
+  const evEl = document.getElementById('secEvents');
+  evEl.innerHTML = combined.length ? combined.map(r =>
+    `<div class="ev ${r.isFail ? 'auth-fail' : r.isOk ? 'auth-ok' : ''}"><span class="d">${r.label}</span><div class="n">${r.stage}</div><div class="s">${r.detail || '—'}</div></div>`
+  ).join('') : '<div class="hint">awaiting telemetry data...</div>';
+}
+setInterval(secUpdate, 500);
+
+async function simulateAttack(){
+  const btn = document.getElementById('attackBtn');
+  btn.disabled = true;
+  btn.textContent = '⚠ INJECTING TAMPERED PACKET...';
+  secPushLocalEvent('ATTACK', 'tampered_injected', 'ciphertext byte flipped before send, by request from this dashboard');
+  try {
+    await fetch('/api/pipeline_control', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({tamper_next: true})
+    });
+    setTimeout(() => {
+      btn.textContent = '✓ ATTACK REJECTED — see Auth Events';
+      btn.style.background = 'var(--greenDim)'; btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '⚠ SIMULATE ATTACK (inject tampered packet)';
+        btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
+      }, 2200);
+    }, 700);
+  } catch(e){
+    btn.disabled = false;
+    btn.textContent = '⚠ SIMULATE ATTACK (inject tampered packet)';
+  }
+}
+
+</script>
+</body>
+</html>

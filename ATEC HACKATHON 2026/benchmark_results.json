@@ -1,0 +1,75 @@
+{
+  "perception": {
+    "fps": 730.9,
+    "frames_tested": 120,
+    "precision": 0.991,
+    "recall": 0.964,
+    "true_positives": 694,
+    "false_positives": 6,
+    "false_negatives": 26
+  },
+  "telemetry": {
+    "full_packet_bytes": 14,
+    "delta_packet_bytes": 9,
+    "json_equivalent_bytes": 77,
+    "compression_ratio_full_vs_json": 5.5,
+    "compression_ratio_delta_vs_json": 8.56,
+    "fec_overhead_bytes_per_block": 18,
+    "fec_block_size": 4
+  },
+  "link_and_fec": [
+    {
+      "configured_loss_rate": 0.0,
+      "link_level_packet_survival": 1.0,
+      "raw_data_survival_rate_no_fec": 1.0,
+      "survival_rate_with_fec": 1.0,
+      "blocks_reconstructed": 0,
+      "total_blocks": 100
+    },
+    {
+      "configured_loss_rate": 0.1,
+      "link_level_packet_survival": 0.88,
+      "raw_data_survival_rate_no_fec": 0.877,
+      "survival_rate_with_fec": 0.938,
+      "blocks_reconstructed": 24,
+      "total_blocks": 100
+    },
+    {
+      "configured_loss_rate": 0.3,
+      "link_level_packet_survival": 0.718,
+      "raw_data_survival_rate_no_fec": 0.708,
+      "survival_rate_with_fec": 0.787,
+      "blocks_reconstructed": 32,
+      "total_blocks": 100
+    },
+    {
+      "configured_loss_rate": 0.5,
+      "link_level_packet_survival": 0.468,
+      "raw_data_survival_rate_no_fec": 0.472,
+      "survival_rate_with_fec": 0.495,
+      "blocks_reconstructed": 9,
+      "total_blocks": 100
+    },
+    {
+      "configured_loss_rate": 0.7,
+      "link_level_packet_survival": 0.322,
+      "raw_data_survival_rate_no_fec": 0.335,
+      "survival_rate_with_fec": 0.343,
+      "blocks_reconstructed": 3,
+      "total_blocks": 100
+    }
+  ],
+  "localization": {
+    "camera_height_m": 1.2,
+    "camera_pitch_deg": 22,
+    "center_pixel_distance_m": 2.97,
+    "expected_center_pixel_distance_m": 2.97,
+    "distance_error_m": 0.0,
+    "sample_distances_m": [
+      2.97,
+      2.36,
+      3.5,
+      1.69
+    ]
+  }
+}

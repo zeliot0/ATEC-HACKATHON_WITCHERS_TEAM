@@ -1,0 +1,6 @@
+path: C:/Users/Admin/Desktop/ATEC HACKATHON 2026/datasets/hazards
+train: images/train
+val: images/val
+names:
+  0: crater
+  1: rock
